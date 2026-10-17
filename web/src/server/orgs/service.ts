@@ -128,6 +128,13 @@ export async function removeMember(access: OrgAccess, membershipId: string) {
       metadata: { user_id: m.user_id, role: m.role },
       ...access.meta,
     });
+    // Keys the member created stop acting for the organization with them.
+    const keys = await tx<{ id: string; prefix: string }[]>`
+      update api_keys set revoked_at = now() where org_id = ${access.org.id} and created_by = ${m.user_id} and revoked_at is null
+      returning id, prefix`;
+    for (const k of keys) {
+      await recordAudit(tx, { orgId: access.org.id, actor: access.auditActor(), action: "apikey.revoke", targetType: "api_key", targetId: k.id, metadata: { prefix: k.prefix, reason: "creator_removed_from_org" }, ...access.meta });
+    }
   });
 }
 

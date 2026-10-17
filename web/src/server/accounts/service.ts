@@ -410,6 +410,11 @@ export async function removeMembership(op: AccountOperator, ref: string, orgSlug
     if (m.role === "org_admin") await assertNotLastAdmin(tx, org.id, account.id);
     await recordAudit(tx, { orgId: org.id, actor: actorOf(op), action: "member.remove", targetType: "membership", targetId: m.id, metadata: { user_id: account.id, account: handle(account), role: m.role }, ...meta });
     await tx`delete from memberships where id = ${m.id}`;
+    const keys = await tx<{ id: string; prefix: string }[]>`
+      update api_keys set revoked_at = now() where org_id = ${org.id} and created_by = ${account.id} and revoked_at is null returning id, prefix`;
+    for (const k of keys) {
+      await recordAudit(tx, { orgId: org.id, actor: actorOf(op), action: "apikey.revoke", targetType: "api_key", targetId: k.id, metadata: { prefix: k.prefix, reason: "creator_removed_from_org" }, ...meta });
+    }
     await recordAudit(tx, { orgId: null, actor: actorOf(op), action: "account.membership_remove", targetType: "user", targetId: account.id, metadata: { account: handle(account), org: orgSlug, role: m.role }, ...meta });
   });
 }

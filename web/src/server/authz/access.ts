@@ -20,7 +20,7 @@
  *                              replaces the administrator-issued password
  */
 import { createHash, timingSafeEqual } from "node:crypto";
-import { API_KEY_SCOPES, ROLE_PERMISSIONS, type OrgRole, type Permission } from "@/lib/authz";
+import { API_KEY_SCOPES, ROLE_PERMISSIONS, roleCan, type OrgRole, type Permission } from "@/lib/authz";
 import type { AuditActor } from "@/server/audit";
 import { withSystem, withTenant, withUser, type TenantContext, type Tx } from "@/server/db/client";
 
@@ -224,6 +224,14 @@ export function parseApiKey(token: string): { prefix: string; secret: string } |
   return m ? { prefix: m[1]!, secret: m[2]! } : null;
 }
 
+async function creatorMayHoldKey(orgId: string, userId: string): Promise<boolean> {
+  const [m] = await withSystem("api_key.creator", (tx) => tx<{ role: OrgRole; disabled: boolean }[]>`
+    select m.role, (c.disabled_at is not null) as disabled
+      from memberships m left join account_controls c on c.user_id = m.user_id
+     where m.org_id = ${orgId} and m.user_id = ${userId}`);
+  return Boolean(m && !m.disabled && roleCan(m.role, "apikeys.manage"));
+}
+
 export async function resolveApiKeyAccess(token: string, slug: string | null, meta: RequestMeta): Promise<OrgAccess> {
   const parsed = parseApiKey(token);
   if (!parsed) throw new AccessError(401, "invalid_credentials", "Invalid API key.");
@@ -240,6 +248,13 @@ export async function resolveApiKeyAccess(token: string, slug: string | null, me
   const stored = key?.key_hash ?? Buffer.alloc(32);
   const match = stored.length === candidate.length && timingSafeEqual(stored, candidate);
   if (!key || !match || key.revoked_at || (key.expires_at && key.expires_at.getTime() <= Date.now())) {
+    throw new AccessError(401, "invalid_credentials", "Invalid API key.");
+  }
+  // A key acts for the organization only while the member who created it
+  // still belongs to it with the right to manage keys and an enabled account
+  // (removal, demotion or disabling ends it — also for keys created before
+  // member removal started revoking them).
+  if (key.created_by && !(await creatorMayHoldKey(key.org_id, key.created_by))) {
     throw new AccessError(401, "invalid_credentials", "Invalid API key.");
   }
 
