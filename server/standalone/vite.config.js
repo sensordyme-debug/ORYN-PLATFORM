@@ -28,5 +28,6 @@ export default defineConfig(({ command, mode }) => {
     port: process.env.PORT,
     allowedHosts: resolveAllowedHosts(process.env.GEV_ALLOWED_HOSTS),
     command,
+    base: process.env.GEV_BASE_PATH,
   });
 });

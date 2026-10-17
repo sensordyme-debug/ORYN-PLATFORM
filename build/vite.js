@@ -1,3 +1,5 @@
+import { rename, rm, stat } from 'node:fs/promises';
+import path from 'node:path';
 import { applicationHtmlPlugin } from './application-html.js';
 import cesium from 'vite-plugin-cesium';
 import { DEFAULT_ALLOWED_HOSTS, hostCheckPlugin } from './allowedHosts.js';
@@ -47,6 +49,59 @@ export const BROWSER_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
 });
 
+/**
+ * A Vite base path: `/` by default, otherwise `/segment/.../`. Anything
+ * that is not a plain absolute path of URL-safe segments is refused, so a
+ * mistyped variable can never point asset URLs at another origin.
+ */
+export function normalizeBasePath(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === '/') return '/';
+  const trimmed = `/${raw.replace(/^\/+|\/+$/g, '')}/`;
+  const segments = trimmed.split('/').filter(Boolean);
+  if (
+    !/^\/(?:[A-Za-z0-9._-]+\/)+$/.test(trimmed) ||
+    segments.some((segment) => segment === '.' || segment === '..')
+  )
+    throw new Error(`Invalid GEV_BASE_PATH: ${raw}`);
+  return trimmed;
+}
+
+/**
+ * vite-plugin-cesium copies Cesium's static files to `outDir + base +
+ * cesium/` while the page requests `base + cesium/`, which the server maps to
+ * `outDir/cesium/`. Under a non-root base the two disagree, so move the copy
+ * to where the page looks for it. A root base needs nothing.
+ */
+export function cesiumBasePathPlugin(base = '/') {
+  let outDir = 'dist';
+  return {
+    name: 'cesium-base-path',
+    apply: 'build',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      async handler() {
+        if (base === '/') return;
+        const nested = path.join(outDir, ...base.split('/').filter(Boolean));
+        const from = path.join(nested, 'cesium');
+        const to = path.join(outDir, 'cesium');
+        try {
+          await stat(from);
+        } catch {
+          return;
+        }
+        await rm(to, { recursive: true, force: true });
+        await rename(from, to);
+        await rm(nested, { recursive: true, force: true });
+      },
+    },
+  };
+}
+
 /** Build browser assets with explicit inputs; never load environment or providers. */
 export function createBrowserViteConfig({
   plugins = [],
@@ -58,16 +113,23 @@ export function createBrowserViteConfig({
   port = 4173,
   allowedHosts = DEFAULT_ALLOWED_HOSTS,
   command,
+  base,
 } = {}) {
+  const basePath = normalizeBasePath(base);
   return {
+    // A host application can serve the engine under a sub-path
+    // (GEV_BASE_PATH=/engine/) so it shares that application's origin.
+    ...(basePath === '/' ? {} : { base: basePath }),
     plugins: [
       // First, so no provider route answers a Host the server does not allow.
       hostCheckPlugin(),
       cesium(),
       applicationHtmlPlugin(),
       ...plugins,
-      embedFramingPlugin(),
+      embedFramingPlugin({ base: basePath }),
       panelBuildPlugin(),
+      // Only a sub-path deployment needs Cesium's static copy relocated.
+      ...(basePath === '/' ? [] : [cesiumBasePathPlugin(basePath)]),
     ],
     ...(publicDir === undefined ? {} : { publicDir }),
     // A production build must not clean the dependency cache a running dev
@@ -96,6 +158,10 @@ export function createBrowserViteConfig({
       fs: {
         deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/ENVIRONMENT'],
       },
+      // Build output and the ORYN web application (its own toolchain and
+      // .next cache) are not engine sources; watching them only invites
+      // locked-file errors on Windows.
+      watch: { ignored: ['**/dist-engine/**', '**/web/**'] },
       // These headers protect the document containing Provider Settings and
       // give the whole page a real Content-Security-Policy (BROWSER_CSP).
       // Embed-mode documents are framable instead: embed-framing.js rewrites

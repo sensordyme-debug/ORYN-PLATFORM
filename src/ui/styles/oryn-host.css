@@ -1,0 +1,318 @@
+/* ── ORYN host theme ───────────────────────────────────────────────────────
+   Applies when the ORYN platform runs this engine as its analytics workspace
+   (`?host=oryn`, see src/ui/host/hostMode.js). Every value below is taken
+   from the ORYN design system rather than chosen here:
+     ORYN-WEBSITE src/app/globals.css          ink / bone / signal / data tokens,
+                                               Geist type, t-eyebrow, focus ring
+     ORYN-WEBSITE src/components/platform/ui.tsx  Panel, Badge, Button, input
+                                               classes (radii 2–4px, hairline
+                                               bone borders, ink-850 surfaces)
+   The engine keeps all of its controls; only their presentation changes.
+   Nothing here applies to the standalone app. */
+
+:root[data-host='oryn'] {
+  /* ORYN tokens (globals.css @theme) */
+  --oryn-ink-950: #060707;
+  --oryn-ink-900: #0a0b0c;
+  --oryn-ink-850: #0f1112;
+  --oryn-ink-800: #141618;
+  --oryn-ink-750: #191c1e;
+  --oryn-ink-700: #202326;
+  --oryn-bone-50: #f2f1ed;
+  --oryn-signal: #ff6a2b;
+  --oryn-data-veg: #8dbf63;
+  --oryn-data-water: #5fb4d6;
+  --oryn-data-amber: #e9b949;
+  --oryn-data-alert: #e5544b;
+  --oryn-data-violet: #a39be0;
+  --oryn-hairline: rgba(242, 241, 237, 0.09);
+  --oryn-hairline-soft: rgba(242, 241, 237, 0.07);
+
+  /* Engine tokens re-pointed at ORYN values */
+  --bg-dark: var(--oryn-ink-900);
+  --glass-bg: rgba(15, 17, 18, 0.96);
+  --glass-border: var(--oryn-hairline);
+  --glass-border-hover: rgba(242, 241, 237, 0.3);
+  /* ORYN marks the active item with bone text on a faint bone wash
+     (shell.tsx nav: bg-bone-50/[0.08] text-bone-50); signal orange is kept
+     for focus and badges, "used sparingly" per globals.css. */
+  --accent: var(--oryn-bone-50);
+  --accent-dim: rgba(242, 241, 237, 0.08);
+  --accent-glow: transparent;
+  --text-primary: var(--oryn-bone-50);
+  --text-secondary: rgba(242, 241, 237, 0.6);
+  --text-dim: rgba(242, 241, 237, 0.45);
+  --menu-bg: var(--oryn-ink-850);
+  --font-sans:
+    'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --panel-radius: 4px;
+  --btn-radius: 3px;
+  --panel-surface-shadow: none;
+  --panel-surface-title: rgba(242, 241, 237, 0.5);
+  --panel-surface-error: var(--oryn-data-alert);
+  color-scheme: dark;
+}
+
+:root[data-host='oryn'] body {
+  background: var(--oryn-ink-900);
+  color: var(--oryn-bone-50);
+  font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+:root[data-host='oryn'] ::selection {
+  background: var(--oryn-signal);
+  color: var(--oryn-ink-950);
+}
+
+/* ORYN focus ring (globals.css :focus-visible): 2px signal, offset 3px. */
+:root[data-host='oryn']
+  :where(
+    button,
+    a[href],
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]:not([tabindex='-1']),
+    [role='button'],
+    [role='tab']
+  ):focus-visible {
+  outline: 2px solid var(--oryn-signal) !important;
+  outline-offset: 3px;
+}
+
+/* ── Engine branding and standalone-only surfaces ───────────────────────── */
+/* The host supplies identity, navigation, locale and provider settings. */
+:root[data-host='oryn'] #title-bar,
+:root[data-host='oryn'] #style-indicator,
+:root[data-host='oryn'] #corner-actions,
+:root[data-host='oryn'] #key-setup-chip,
+:root[data-host='oryn'] #key-setup,
+:root[data-host='oryn'] #first-run-launcher,
+:root[data-host='oryn'] #safe-frame-overlay,
+:root[data-host='oryn'] .panel-glow,
+:root[data-host='oryn'] .title-glow,
+:root[data-host='oryn'] #loading-screen .loader-logo,
+:root[data-host='oryn'] #loading-screen h2 {
+  display: none !important;
+}
+
+/* The host renders its own layer panel once it calls
+   __gevHost.setExternalLayerPanel(true); until then the engine's stays. */
+:root[data-host='oryn'][data-host-layers='external'] #data-panel {
+  display: none !important;
+}
+
+/* Loading: plain ink with ORYN's status line ("Loading the 3D globe…"
+   style, intel/loader.tsx: text-[0.8125rem] text-bone-50/55). */
+:root[data-host='oryn'] #loading-screen {
+  background: var(--oryn-ink-900);
+}
+:root[data-host='oryn'] #loading-screen .loader-status {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(242, 241, 237, 0.55);
+}
+
+/* ── Panels: ORYN Panel (rounded-[4px] border-bone-50/[0.09] bg-ink-850) ── */
+:root[data-host='oryn']
+  :is(
+    .panel-inner,
+    .data-panel-inner,
+    .cctv-panel-inner,
+    .scene-panel-inner,
+    .weather-panel-inner,
+    .recent-imagery-panel-inner,
+    .global-context-panel-inner,
+    .radio-panel-inner,
+    .street-level-panel-inner,
+    .pp-inner,
+    #param-slider-panel,
+    #location-bar,
+    #control-panel
+  ) {
+  background: var(--oryn-ink-850) !important;
+  border: 1px solid var(--oryn-hairline) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Panel titles follow ORYN's t-eyebrow: mono, .6875rem, .16em, uppercase. */
+:root[data-host='oryn'] :is(.panel-title, .panel-surface-title, .pp-title) {
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.16em !important;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: rgba(242, 241, 237, 0.5) !important;
+  text-shadow: none !important;
+}
+:root[data-host='oryn'] .panel-header {
+  border-color: var(--oryn-hairline-soft) !important;
+}
+:root[data-host='oryn'] .panel-divider {
+  background: var(--oryn-hairline-soft) !important;
+}
+
+/* ── Buttons: ORYN secondary Button (border-bone-50/20, rounded-[3px]) ──── */
+:root[data-host='oryn']
+  :is(
+    .scene-btn,
+    .data-toggle-btn,
+    .panel-collapse-btn,
+    .style-btn,
+    .cctv-controls button,
+    .sl-controls button,
+    .data-toggle-chip
+  ) {
+  font-family: var(--font-sans) !important;
+  border-radius: 3px !important;
+  border-color: rgba(242, 241, 237, 0.2) !important;
+  background: transparent !important;
+  color: var(--oryn-bone-50) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+:root[data-host='oryn']
+  :is(
+    .scene-btn,
+    .data-toggle-btn,
+    .panel-collapse-btn,
+    .style-btn,
+    .cctv-controls button,
+    .sl-controls button,
+    .data-toggle-chip
+  ):hover {
+  border-color: rgba(242, 241, 237, 0.5) !important;
+  background: rgba(242, 241, 237, 0.04) !important;
+}
+/* Active / ON: ORYN primary Button (bg-bone-50 text-ink-900). */
+:root[data-host='oryn']
+  :is(
+    .scene-btn.active,
+    .data-toggle-btn.active,
+    .style-btn.active,
+    .data-toggle-chip.active,
+    .data-toggle-chip[aria-pressed='true']
+  ) {
+  background: var(--oryn-bone-50) !important;
+  border-color: var(--oryn-bone-50) !important;
+  color: var(--oryn-ink-900) !important;
+}
+
+/* Feed state on toggles mirrors ORYN Badge tones (ui.tsx TONE). */
+:root[data-host='oryn'] .data-toggle-btn.feed-stale,
+:root[data-host='oryn'] .data-toggle-btn.feed-partial,
+:root[data-host='oryn'] .data-toggle-btn.feed-degraded {
+  border-color: rgba(233, 185, 73, 0.4) !important;
+  color: var(--oryn-data-amber) !important;
+  background: transparent !important;
+}
+:root[data-host='oryn'] .data-toggle-btn.feed-unavailable {
+  border-color: rgba(229, 84, 75, 0.45) !important;
+  color: var(--oryn-data-alert) !important;
+  background: transparent !important;
+}
+:root[data-host='oryn'] .data-toggle-btn.feed-fallback {
+  border-color: rgba(95, 180, 214, 0.4) !important;
+  color: var(--oryn-data-water) !important;
+  background: transparent !important;
+}
+
+/* Inputs: ORYN inputClass (rounded-[3px] border-bone-50/15 bg-ink-950). */
+:root[data-host='oryn'] :is(input[type='text'], input[type='search'], select) {
+  font-family: var(--font-sans);
+  background: var(--oryn-ink-950);
+  border: 1px solid rgba(242, 241, 237, 0.15);
+  border-radius: 3px;
+  color: var(--oryn-bone-50);
+}
+:root[data-host='oryn'] input[type='range'] {
+  accent-color: var(--oryn-bone-50);
+}
+
+/* ── Top globe actions: ORYN icon buttons (rounded-[3px], ghost) ────────── */
+:root[data-host='oryn'] #top-center-actions button {
+  border-radius: 3px;
+  background: rgba(6, 7, 7, 0.72);
+  border-color: var(--oryn-hairline);
+  color: rgba(242, 241, 237, 0.75);
+}
+:root[data-host='oryn'] #top-center-actions button:hover,
+:root[data-host='oryn'] #top-center-actions button:focus-visible {
+  background: rgba(242, 241, 237, 0.06);
+  border-color: rgba(242, 241, 237, 0.3);
+  color: var(--oryn-bone-50);
+}
+
+/* ── Command dock: ORYN top bar surface (bg-ink-950, hairline border) ──── */
+:root[data-host='oryn'] #command-dock {
+  background: rgba(6, 7, 7, 0.94);
+  border: 1px solid var(--oryn-hairline);
+  border-radius: 4px;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-host='oryn'] #command-dock * {
+  text-shadow: none !important;
+}
+
+/* ── Voice pill and other glass chips ───────────────────────────────────── */
+:root[data-host='oryn'] :is(#gev-voice-control, #view-switcher, #toast) {
+  border-color: var(--oryn-hairline) !important;
+  box-shadow: none !important;
+}
+:root[data-host='oryn'] #toast {
+  background: var(--oryn-ink-850);
+  color: var(--oryn-bone-50);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+}
+
+/* Attribution stays visible (Cesium / Google terms); ORYN's credit style is
+   small mono text at low contrast (intel-workspace credits). */
+:root[data-host='oryn'] #cesium-credits {
+  font-family: var(--font-mono);
+}
+
+/* The DISPLAY panel header uses its own label class; same eyebrow. */
+:root[data-host='oryn'] .pp-header-label {
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(242, 241, 237, 0.5) !important;
+}
+
+/* Voice control and dock accents are hard-coded cyan in the engine
+   (foundation.css #gev-voice-button, command-dock-sliding.css); ORYN uses a
+   secondary Button there: hairline bone border on ink, no glow. */
+:root[data-host='oryn'] #gev-voice-button {
+  color: var(--oryn-bone-50);
+  background: var(--oryn-ink-950);
+  border-color: rgba(242, 241, 237, 0.2);
+  border-radius: 3px;
+}
+:root[data-host='oryn'] #gev-voice-button:hover {
+  border-color: rgba(242, 241, 237, 0.5);
+  box-shadow: none;
+}
+:root[data-host='oryn'] #gev-voice-control,
+:root[data-host='oryn'] #command-dock .gev-voice-card {
+  background: var(--oryn-ink-850) !important;
+  border-color: var(--oryn-hairline) !important;
+  border-radius: 4px !important;
+}
+:root[data-host='oryn'] #command-dock,
+:root[data-host='oryn'] #command-dock *,
+:root[data-host='oryn'] #gev-voice-control,
+:root[data-host='oryn'] #gev-voice-control * {
+  box-shadow: none !important;
+}

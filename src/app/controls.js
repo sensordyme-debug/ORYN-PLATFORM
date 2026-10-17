@@ -13,6 +13,8 @@ export function createApplicationControls({
   catalog,
   placeSearch,
   defer,
+  // A host application that sets its own starting view turns this off.
+  startupFlight = true,
 }) {
   // Initialize the style manager (post-processing, HUD, locations, share links)
   const styleManager = new Controls(viewer, {
@@ -41,10 +43,10 @@ export function createApplicationControls({
   defer(() => cockpitCloudEffects?.destroy());
 
   // If no share link state, do default fly-to Austin
-  if (!styleManager.hasShareState) {
+  if (!styleManager.hasShareState && startupFlight) {
     loaderStatus.textContent = t('Flying to Austin, TX...');
     defer(flyToAustin(viewer));
-  } else {
+  } else if (styleManager.hasShareState) {
     loaderStatus.textContent = t('Restoring shared view...');
   }
 

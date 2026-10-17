@@ -215,8 +215,13 @@ export function shouldShowFirstRun({
   if (hasShareState) return false;
   const params = new URLSearchParams(location?.search || '');
   if (params.get('welcome') === '0') return false;
-  // An embedded globe never shows the welcome launcher.
-  if (params.get('embed') === '1' || globalThis.GEV_EMBED_INLINE === true)
+  // An embedded globe, or one a host application runs as its workspace
+  // (?host=oryn), never shows the welcome launcher.
+  if (
+    params.get('embed') === '1' ||
+    params.get('host') === 'oryn' ||
+    globalThis.GEV_EMBED_INLINE === true
+  )
     return false;
   // The demo/support escape hatch outranks both suppressions on purpose.
   if (params.get('welcome') === '1') return true;

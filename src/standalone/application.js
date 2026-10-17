@@ -22,6 +22,7 @@ export function createStandaloneApplication({
   sources = {},
   streetLevelProviders,
   allowQaRegistration = false,
+  startupFlight = true,
 }) {
   if (constructed)
     throw new Error('The standalone application already owns this page');
@@ -80,6 +81,7 @@ export function createStandaloneApplication({
         loaderStatus,
         placeSearch,
         catalog,
+        startupFlight,
       }),
     createData: (context) =>
       createStandaloneData({ ...context, allowQaRegistration, catalog }),

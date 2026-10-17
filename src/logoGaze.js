@@ -111,7 +111,12 @@ export function initLogoGaze(root = document) {
 
   const loadInlineLogos = async () => {
     try {
-      const source = logos[0].dataset.logoSrc || '/logo.svg';
+      // Root-relative markup paths are resolved against the deployment base
+      // (GEV_BASE_PATH) so the logo loads when the app runs under a sub-path.
+      const declared = logos[0].dataset.logoSrc || '/logo.svg';
+      const source = declared.startsWith('/')
+        ? `${import.meta.env?.BASE_URL || '/'}${declared.replace(/^\/+/, '')}`
+        : declared;
       const response = await window.fetch(source);
       if (!response.ok) return;
       const markup = await response.text();
