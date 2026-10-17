@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -153,6 +159,65 @@ test('event records carry provenance, observation and retrieval times', () => {
   assert.equal(eventRef('flights', { id: 'x' }), null);
 });
 
+test('fire detections carry their satellite acquisition time and a refresh-stable id', () => {
+  // The FIRMS analyst record (src/layers/firms/model.js mapAnalystRecord).
+  const record = {
+    id: 'FIRE-00007',
+    lat: 35.123456,
+    lon: -77.654321,
+    frp: 12.5,
+    confidence: 0.8,
+    satellite: 'N20',
+    sensor: 'VIIRS',
+    acqTime: 1_760_000_000_000,
+  };
+  const ref = eventRef('local-firms', record, { source: 'NASA FIRMS' });
+  assert.equal(ref.kind, 'fire-detection');
+  assert.equal(ref.observedAt, new Date(1_760_000_000_000).toISOString());
+  assert.equal(ref.id, 'local-firms:N20:1760000000000:35.1235,-77.6543');
+  // A later fetch lists the same detection at another index: same id.
+  assert.equal(
+    eventRef('local-firms', { ...record, id: 'FIRE-00002' }).id,
+    ref.id,
+  );
+  // No acquisition time: no invented date, and the record id is kept.
+  const undated = eventRef('local-firms', { ...record, acqTime: null });
+  assert.equal(undated.observedAt, null);
+  assert.equal(undated.id, 'local-firms:FIRE-00007');
+  // A record without coordinates has no position (not 0°, 0°).
+  assert.equal(
+    eventRef('local-firms', { ...record, lat: null, lon: null }).position,
+    null,
+  );
+});
+
+test('cyclone advisories carry the position time, else the advisory time', () => {
+  const storm = {
+    id: 'Milton',
+    stormId: 'al142024',
+    name: 'Milton',
+    lat: 23.1,
+    lon: -88.2,
+    windKt: 150,
+    pressureHpa: 905,
+    issuedAt: '2024-10-08T15:00:00.000Z',
+    positionAt: '2024-10-08T14:00:00.000Z',
+  };
+  const ref = eventRef('weather-cyclones', storm);
+  assert.equal(ref.id, 'weather-cyclones:al142024');
+  assert.equal(ref.observedAt, '2024-10-08T14:00:00.000Z');
+  assert.equal(ref.fields.advisoryIssuedAt, '2024-10-08T15:00:00.000Z');
+  assert.equal(
+    eventRef('weather-cyclones', { ...storm, positionAt: null }).observedAt,
+    '2024-10-08T15:00:00.000Z',
+  );
+  assert.equal(
+    eventRef('weather-cyclones', { ...storm, positionAt: null, issuedAt: null })
+      .observedAt,
+    null,
+  );
+});
+
 test('selections become references with only plain fields', () => {
   assert.equal(selectionRef(null), null);
   const ref = selectionRef(
@@ -191,7 +256,10 @@ test('base paths are plain absolute paths or refused', () => {
   assert.equal(createBrowserViteConfig({}).base, undefined);
   assert.equal(createBrowserViteConfig({ base: '/engine/' }).base, '/engine/');
   const names = (config) => config.plugins.map((plugin) => plugin.name);
-  assert.equal(names(createBrowserViteConfig({})).includes('cesium-base-path'), false);
+  assert.equal(
+    names(createBrowserViteConfig({})).includes('cesium-base-path'),
+    false,
+  );
   assert.equal(
     names(createBrowserViteConfig({ base: '/engine/' })).at(-1),
     'cesium-base-path',

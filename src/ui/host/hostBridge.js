@@ -55,7 +55,26 @@ export const EVENT_LAYERS = Object.freeze({
     kind: 'fire-detection',
     // i18n-ignore: record data handed to the host, which localizes its own UI.
     label: (r) => r.label || `FRP ${r.frp ?? r.frpMw ?? '?'} MW`,
-    observedAt: (r) => r.acqMs ?? r.observedAtMs ?? r.observedAt ?? null,
+    // The analyst record (firms/model.js) carries the satellite acquisition
+    // time as acqTime (epoch ms) and an id derived from its position in the
+    // current fetch; a host needs an id that survives a refresh.
+    id: (r) => {
+      const { lat, lon, acqTime: at } = r;
+      if (
+        ![lat, lon, at].every(
+          (v) => typeof v === 'number' && Number.isFinite(v),
+        ) ||
+        at <= 0
+      )
+        return r.id;
+      return `${r.satellite || r.sensor || 'fire'}:${at}:${lat.toFixed(4)},${lon.toFixed(4)}`;
+    },
+    observedAt: (r) =>
+      typeof r.acqTime === 'number' &&
+      Number.isFinite(r.acqTime) &&
+      r.acqTime > 0
+        ? r.acqTime
+        : null,
     sourceUrl: () => 'https://firms.modaps.eosdis.nasa.gov/',
     fields: (r) => ({
       frp: r.frp ?? r.frpMw ?? null,
@@ -77,12 +96,15 @@ export const EVENT_LAYERS = Object.freeze({
   'weather-cyclones': Object.freeze({
     kind: 'cyclone',
     label: (r) => r.name || r.id,
-    observedAt: () => null,
+    id: (r) => r.stormId || r.id,
+    // The storm position's valid time; the advisory issue time otherwise.
+    observedAt: (r) => r.positionAt ?? r.issuedAt ?? null,
     sourceUrl: () => null,
     fields: (r) => ({
       classification: r.classification ?? null,
       windKt: r.windKt ?? null,
       pressureHpa: r.pressureHpa ?? null,
+      advisoryIssuedAt: r.issuedAt ?? null,
     }),
   }),
 });
@@ -110,6 +132,8 @@ function toIso(value) {
 }
 
 function finite(value) {
+  // Number(null) and Number('') are 0: a missing value is not a coordinate.
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -135,7 +159,7 @@ export function eventRef(layerId, record, { source, retrievedAt } = {}) {
   const lon = finite(record.lon);
   return {
     kind: spec.kind,
-    id: `${layerId}:${record.id}`,
+    id: `${layerId}:${spec.id ? spec.id(record) : record.id}`,
     label: String(spec.label(record) || record.id),
     layerId,
     position: lat !== null && lon !== null ? { lat, lon } : null,

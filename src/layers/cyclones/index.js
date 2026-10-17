@@ -467,7 +467,7 @@ export function createCyclonesLayer({
      * query engine. On demand only (once per spoken query); [] while the
      * layer is off.
      * @param {number} [maxCount=Infinity] Most records to return.
-     * @returns {Array<Object>} {id, name, classification, basin, lat, lon, windKt, pressureHpa}.
+     * @returns {Array<Object>} {id, stormId, name, classification, basin, lat, lon, windKt, pressureHpa, issuedAt, positionAt}.
      */
     getAnalystRecords(maxCount = Infinity) {
       if (!enabled || destroyed) return [];
@@ -480,6 +480,7 @@ export function createCyclonesLayer({
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
         result.push({
           id: storm.name || storm.id,
+          stormId: storm.id || null,
           name: storm.name || null,
           classification: storm.classification || null,
           basin: storm.basin || null,
@@ -487,6 +488,8 @@ export function createCyclonesLayer({
           lon,
           windKt: num(storm.windKt),
           pressureHpa: num(storm.pressureHpa),
+          issuedAt: storm.issuedAt || null,
+          positionAt: storm.positionAt || null,
         });
       }
       return result;
