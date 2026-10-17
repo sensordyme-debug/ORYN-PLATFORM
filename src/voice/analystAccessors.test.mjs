@@ -212,6 +212,7 @@ test('cyclones flatten the storm position and stay empty while off', async () =>
   const [row] = layer.getAnalystRecords();
   assert.deepEqual(row, {
     id: 'Fay',
+    stormId: 'al052026',
     name: 'Fay',
     classification: 'TS',
     basin: 'AL',
@@ -219,6 +220,8 @@ test('cyclones flatten the storm position and stay empty while off', async () =>
     lon: -40,
     windKt: 35,
     pressureHpa: 1010,
+    issuedAt: '2026-09-23T00:00:00Z',
+    positionAt: null,
   });
   assertDeclaredFields('weather-cyclones', row);
   layer.destroy?.();
