@@ -57,13 +57,22 @@ test("intelligence globe: God's Eye View engine inside the ORYN workspace, hones
   await expect(quakeRow.getByText("Current", { exact: true })).toBeVisible({ timeout: 60_000 });
   await expect(quakeRow.getByText(/1 shown · retrieved/)).toBeVisible();
   await expect(quakeRow.getByText("USGS")).toBeVisible();
+  // Layers whose licences do not permit commercial display are not offered.
+  const withheld = page.locator("details").filter({ hasText: "engine layers not offered in ORYN" });
+  await expect(withheld).toBeVisible();
+  await withheld.locator("summary").click();
+  await expect(withheld.getByText(/Submarine Cables/)).toBeVisible();
+  await expect(withheld.getByText(/CC BY-NC-SA/)).toBeVisible();
+  await expect(page.locator("aside label").filter({ hasText: "Street Traffic" })).toHaveCount(0);
 
   // Search reaches records loaded in the engine; the card shows provenance and times.
   await page.getByLabel(/Search areas, findings/).fill("Globe Test");
   await page.getByRole("list", { name: "Search results" }).getByRole("button", { name: /M3\.1 4 km E of Globe Test/ }).click();
   const card = page.getByRole("complementary", { name: "Details" });
   await expect(card.getByRole("heading", { name: "M3.1 4 km E of Globe Test" })).toBeVisible();
-  await expect(card.getByText("Provider-reported", { exact: true })).toBeVisible();
+  // Earthquakes are observations; the card says so, with the USGS licence.
+  await expect(card.getByText("Provider-reported observation", { exact: true })).toBeVisible();
+  await expect(card.getByText(/U.S. Geological Survey (U.S. public domain)/)).toBeVisible();
   await expect(card.getByText("Retrieved by ORYN")).toBeVisible();
 
   // One click to the existing 2D map at the same place, and back.

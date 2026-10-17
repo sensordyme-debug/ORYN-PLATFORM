@@ -33,6 +33,32 @@ describe("verification gates for unverified integrations", () => {
   });
 });
 
+describe("licence gate for integrations without commercial terms", () => {
+  const ids = ["nifc-wildfire-perimeters", "celestrak", "caltrans-cctv"] as const;
+
+  it("keeps them off in every environment, saying why and how to clear them", () => {
+    for (const id of ids) {
+      for (const production of [false, true]) {
+        const gate = integrationGate(id, { production, verified: [id], licenceCleared: [] });
+        expect(gate.enabled).toBe(false);
+        expect(!gate.enabled && gate.reason).toMatch(/ORYN_LICENCE_CLEARED_INTEGRATIONS/);
+      }
+    }
+  });
+
+  it("once cleared, they follow the verification gate like any other", () => {
+    for (const id of ids) {
+      expect(integrationGate(id, { production: false, verified: [], licenceCleared: [id] })).toEqual({ enabled: true });
+      expect(integrationGate(id, { production: true, verified: [], licenceCleared: [id] }).enabled).toBe(false);
+      expect(integrationGate(id, { production: true, verified: [id], licenceCleared: [id] })).toEqual({ enabled: true });
+    }
+  });
+
+  it("does not affect integrations with commercial terms", () => {
+    expect(integrationGate("usgs-earthquakes", { production: false, verified: [], licenceCleared: [] })).toEqual({ enabled: true });
+  });
+});
+
 describe("GDELT rate limits", () => {
   // The client's in-process spacing (5.5 s per host) must not carry over between tests.
   beforeEach(() => resetHostLimiter());

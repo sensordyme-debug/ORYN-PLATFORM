@@ -36,14 +36,34 @@ export const GATED_INTEGRATIONS = {
 
 export type GatedIntegration = keyof typeof GATED_INTEGRATIONS;
 
+/**
+ * Integrations whose provider publishes no terms that permit commercial
+ * display (licence review 2026-10-17, ORYN_LICENCE_REVIEW.md at the
+ * repository root). Unlike the verification gate, this one applies in EVERY
+ * environment: each stays off until an operator who has obtained or confirmed
+ * a licence lists its id in ORYN_LICENCE_CLEARED_INTEGRATIONS.
+ */
+export const LICENCE_WITHHELD: Partial<Record<GatedIntegration, string>> = {
+  "nifc-wildfire-perimeters":
+    "NIFC publishes no licence or public-domain statement for the WFIGS perimeters (only a disclaimer), and state agencies contribute to them.",
+  celestrak: "CelesTrak publishes no terms for reusing its orbital elements, which originate from Space-Track.",
+  "caltrans-cctv": "Caltrans' conditions of use do not clearly cover reuse of its camera images (photographs may require additional permissions).",
+};
+
 export const GATED_INTEGRATION_IDS = Object.keys(GATED_INTEGRATIONS) as GatedIntegration[];
 
 export type IntegrationGate = { enabled: true } | { enabled: false; reason: string };
 
-export function integrationGate(
-  id: GatedIntegration,
-  cfg: { production?: boolean; verified?: string[] } = {},
-): IntegrationGate {
+export type IntegrationGateConfig = { production?: boolean; verified?: string[]; licenceCleared?: readonly string[] };
+
+export function integrationGate(id: GatedIntegration, cfg: IntegrationGateConfig = {}): IntegrationGate {
+  const withheld = LICENCE_WITHHELD[id];
+  if (withheld && !(cfg.licenceCleared ?? env.licenceClearedIntegrations()).includes(id)) {
+    return {
+      enabled: false,
+      reason: `${GATED_INTEGRATIONS[id].label} is off: ${withheld} Once a licence is confirmed, add "${id}" to ORYN_LICENCE_CLEARED_INTEGRATIONS.`,
+    };
+  }
   const production = cfg.production ?? isProduction();
   if (!production) return { enabled: true };
   const verified = cfg.verified ?? env.verifiedIntegrations();

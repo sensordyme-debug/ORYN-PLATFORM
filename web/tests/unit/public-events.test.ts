@@ -25,7 +25,7 @@ const fire = (id: string, lon: number, lat: number, acres: number) => ({
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const NOW = Date.parse("2026-10-16T12:00:00Z");
 const WORLD: [number, number, number, number] = [-180, -90, 180, 90];
-const open = { production: false } as const;
+const open = { production: false, licenceCleared: ["nifc-wildfire-perimeters", "celestrak", "caltrans-cctv"] } as const;
 
 beforeEach(() => {
   resetPublicEventsCache();

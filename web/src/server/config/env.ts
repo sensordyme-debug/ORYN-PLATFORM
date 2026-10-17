@@ -158,6 +158,8 @@ export const env = {
    * stays off — see src/server/integrations.ts.
    */
   verifiedIntegrations: () => list("ORYN_VERIFIED_INTEGRATIONS"),
+  /** Integrations held back for licensing that an operator has cleared (src/server/integrations.ts). */
+  licenceClearedIntegrations: () => list("ORYN_LICENCE_CLEARED_INTEGRATIONS"),
   /**
    * Run production-mode builds on one machine against localhost (rehearsal).
    * Honoured only when BETTER_AUTH_URL points at localhost, so it can never

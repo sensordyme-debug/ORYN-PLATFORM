@@ -127,14 +127,14 @@ function intersects(b: [number, number, number, number], q: [number, number, num
 export async function publicEvents(
   layerId: string,
   q: PublicEventsQuery,
-  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[] } = {},
+  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[]; licenceCleared?: readonly string[] } = {},
 ): Promise<PublicEventsResponse | null> {
   if (!isPublicEventLayerId(layerId)) return null;
   const layer = PUBLIC_EVENT_LAYERS[layerId];
   const now = opts.now ?? Date.now;
   const empty = (feed: PublicEventFeed): PublicEventsResponse => ({ layer, feed, total: 0, features: { type: "FeatureCollection", features: [] } });
 
-  const gate = integrationGate(layerId, { production: opts.production, verified: opts.verified });
+  const gate = integrationGate(layerId, { production: opts.production, verified: opts.verified, licenceCleared: opts.licenceCleared });
   if (!gate.enabled) return empty({ state: "disabled", retrievedAt: null, generatedAt: null, message: gate.reason, retryAfterSeconds: null });
 
   let entry = cache.get(layerId);

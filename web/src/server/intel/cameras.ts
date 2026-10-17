@@ -112,12 +112,12 @@ function intersects(lon: number, lat: number, [w, s, e, n]: [number, number, num
 
 export async function cameras(
   bbox: [number, number, number, number],
-  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[]; q?: string } = {},
+  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[]; licenceCleared?: readonly string[]; q?: string } = {},
 ): Promise<CamerasResponse> {
   const provider = CAMERA_PROVIDERS["caltrans-cctv"];
   const now = opts.now ?? Date.now;
   const empty = (feed: CamerasResponse["feed"]): CamerasResponse => ({ provider, feed, analytics: NO_CAMERA_ANALYTICS, total: 0, cameras: [] });
-  const gate = integrationGate("caltrans-cctv", { production: opts.production, verified: opts.verified });
+  const gate = integrationGate("caltrans-cctv", { production: opts.production, verified: opts.verified, licenceCleared: opts.licenceCleared });
   if (!gate.enabled) return empty({ state: "disabled", retrievedAt: null, message: gate.reason });
 
   const oldest = Math.min(...CALTRANS_DISTRICTS.map((d) => state.districts.get(d)?.retrievedAt ?? 0));
@@ -164,10 +164,10 @@ export async function cameras(
  */
 export async function streamHealth(
   cameraId: string,
-  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[] } = {},
+  opts: { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[]; licenceCleared?: readonly string[] } = {},
 ): Promise<StreamHealth | null> {
   const now = opts.now ?? Date.now;
-  const gate = integrationGate("caltrans-cctv", { production: opts.production, verified: opts.verified });
+  const gate = integrationGate("caltrans-cctv", { production: opts.production, verified: opts.verified, licenceCleared: opts.licenceCleared });
   if (!gate.enabled) return null;
   if (!state.districts.size) await cameras([-180, -90, 180, 90], opts);
   const cam = [...state.districts.values()].flatMap((d) => d.cameras).find((c) => c.id === cameraId);

@@ -14,7 +14,7 @@ import { normalizeOmm, resetSatelliteCache, satelliteOverpasses, satelliteTracks
 const OMM = JSON.parse(readFileSync("tests/fixtures/celestrak-resource.sample.json", "utf8")) as (OMMJsonObject & { NORAD_CAT_ID: number })[];
 const CALTRANS = JSON.parse(readFileSync("tests/fixtures/caltrans-cctv-d7.sample.json", "utf8")) as { data: { cctv: Record<string, unknown> }[] };
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
-const open = { production: false } as const;
+const open = { production: false, licenceCleared: ["nifc-wildfire-perimeters", "celestrak", "caltrans-cctv"] } as const;
 const S2B = OMM.find((r) => r.NORAD_CAT_ID === 42063)!;
 
 beforeEach(() => {

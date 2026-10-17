@@ -88,11 +88,11 @@ async function refresh(now: () => number, fetchImpl?: FetchLike) {
   }
 }
 
-type Opts = { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[] };
+type Opts = { now?: () => number; fetchImpl?: FetchLike; production?: boolean; verified?: string[]; licenceCleared?: readonly string[] };
 
 async function elements(opts: Opts): Promise<{ snap: Snapshot | null; feed: SatelliteTracksResponse["feed"] }> {
   const now = opts.now ?? Date.now;
-  const gate = integrationGate("celestrak", { production: opts.production, verified: opts.verified });
+  const gate = integrationGate("celestrak", { production: opts.production, verified: opts.verified, licenceCleared: opts.licenceCleared });
   if (!gate.enabled) return { snap: null, feed: { state: "disabled", retrievedAt: null, message: gate.reason } };
   const due = !state.snap || now() - state.snap.retrievedAt >= REFRESH_MS;
   const waiting = state.failure !== null && now() - state.failure.at < state.failure.retryAfterMs;
