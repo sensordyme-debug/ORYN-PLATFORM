@@ -29,6 +29,19 @@ import {
 
 /** Env kill switch: unset or anything but "0" means enabled. */
 const envEnabled = (name) => String(process.env[name] || '1').trim() !== '0';
+/**
+ * Optional allowlist of live pack names (CCTV_PACKS=nsw,fintraffic,...). A
+ * deployment that may only show cameras whose image licence it has verified
+ * sets it; unset, every pack follows its own switch as before.
+ */
+export function cctvPackAllowed(name, value = process.env.CCTV_PACKS) {
+  const list = String(value ?? '').trim();
+  if (!list) return true;
+  return list
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .includes(name);
+}
 /** Env opt-in: only "1" enables. For packs whose feed access needs an
  * operator agreement or whose terms are unconfirmed, so an unset flag never
  * reaches the upstream. */
@@ -253,7 +266,9 @@ export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
           // failed pack instead of rejecting the whole refresh.
           LIVE_PACKS.map((pack) =>
             Promise.resolve().then(() =>
-              pack.enabled() ? pack.load({ sourceRoot }) : [],
+              pack.enabled() && cctvPackAllowed(pack.name)
+                ? pack.load({ sourceRoot })
+                : [],
             ),
           ),
         )

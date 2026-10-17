@@ -742,6 +742,10 @@ export async function loadFintrafficSourcesFromOpenData() {
  * @param {unknown} raw
  * @returns {string}
  */
+export const driveBcMinistryOnly = (
+  value = process.env.CCTV_DRIVEBC_MINISTRY_ONLY,
+) => String(value ?? '').trim() === '1';
+
 export function driveBcImageCredit(raw) {
   const text = String(raw || '')
     .replace(/<[^>]*>/g, '')
@@ -812,6 +816,11 @@ export async function loadDriveBcSourcesFromOpenData() {
       const region = String(row.region_name || '').trim();
       const imageUrl = DRIVEBC_IMAGE_URL(row.id);
       const credit = driveBcImageCredit(row.credit);
+      // Partner cameras (a municipality, Parks Canada, ...) belong to their
+      // owners: the Open Government Licence – British Columbia excludes
+      // third-party rights. CCTV_DRIVEBC_MINISTRY_ONLY=1 keeps ministry
+      // cameras only.
+      if (credit && driveBcMinistryOnly()) continue;
       cameras.push({
         id: cameraId,
         name: String(row.name || '').trim() || `DriveBC camera ${row.id}`,

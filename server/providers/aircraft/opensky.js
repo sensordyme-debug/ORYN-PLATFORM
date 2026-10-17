@@ -367,6 +367,17 @@ async function fetchAdsbLolPointFallback(req) {
   }
 }
 
+/** True when this deployment must not use OpenSky (GEV_FLIGHTS_SOURCE=adsb-lol). */
+export function flightsSourceIsAdsbLolOnly(
+  value = process.env.GEV_FLIGHTS_SOURCE,
+) {
+  return (
+    String(value ?? '')
+      .trim()
+      .toLowerCase() === 'adsb-lol'
+  );
+}
+
 async function serveAdsbLolPointFallback(req, res, requestedMode, reason) {
   const fallback = await fetchAdsbLolPointFallback(req);
   if (!fallback) return false;
@@ -423,6 +434,27 @@ export function openSkyProxy() {
         // This mount also matches its /track route, served by its own handler.
         if (new URL(req.url || '/', 'http://localhost').pathname !== '/')
           return next();
+        // OpenSky's licence is non-commercial. A deployment that may not use
+        // it sets GEV_FLIGHTS_SOURCE=adsb-lol and serves only the bounded
+        // adsb.lol regional snapshot (ODbL), never contacting OpenSky.
+        if (flightsSourceIsAdsbLolOnly()) {
+          res.setHeader('X-Feed-Source', 'adsb.lol');
+          if (
+            await serveAdsbLolPointFallback(
+              req,
+              res,
+              'disabled',
+              'opensky_disabled_by_configuration',
+            )
+          )
+            return;
+          res.writeHead(503, {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+          });
+          res.end(JSON.stringify({ error: 'adsb.lol is unavailable' }));
+          return;
+        }
         res.setHeader('X-Feed-Source', 'OpenSky Network');
         const requestedMode = normalizeOpenSkyAuthMode(
           process.env.OPENSKY_AUTH_MODE,

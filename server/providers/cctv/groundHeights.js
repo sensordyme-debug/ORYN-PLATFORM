@@ -18,6 +18,11 @@ let _cache = null;
  * @returns {Record<string, object>} camera id → sidecar entry
  */
 export function loadGroundHeights(sourceRoot = process.cwd()) {
+  // 'off': a deployment that may not use the shipped sidecar (it was sampled
+  // from Google Photorealistic 3D Tiles, whose terms forbid storing derived
+  // content) places cameras on its own terrain instead.
+  if (String(process.env.CCTV_GROUND_HEIGHTS_FILE || '').trim() === 'off')
+    return {};
   const file =
     process.env.CCTV_GROUND_HEIGHTS_FILE || DEFAULT_GROUND_HEIGHTS_FILE;
   const resolved = path.isAbsolute(file)
