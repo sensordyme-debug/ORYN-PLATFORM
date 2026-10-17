@@ -36,7 +36,7 @@ Only source code was adapted. No data, imagery, 3D models, fonts, or other asset
 
 The 3D intelligence globe (`src/components/intel/`, `src/server/intel/`) follows God's Eye View's *patterns* — a Cesium viewer with its widgets off, request-render pacing, a cached server proxy for CelesTrak with stale-on-failure, layer rows with honest feed states, a camera registry with pinned upstream URLs — but its code was written for ORYN; no God's Eye View files were copied for it.
 
-God's Eye View's repository notes that its bundled datasets and models are **not** covered by its MIT licence (for example the TeleGeography cable data and the Bhote Koshi imagery are non-commercial); none of them are used here.
+Since 2026-10-17 the **Intelligence globe runs the God's Eye View engine itself** (the repository root, served at `/engine/`; see `ORYN_INTEGRATION_PLAN.md`). Its code is MIT (Bilawal Sidhu), and Cesium is Apache-2.0; both licence texts ship with the engine build (`LICENSE.txt`, `licenses/cesium-LICENSE.md`). God's Eye View's bundled datasets and models are **not** covered by its MIT licence. The ORYN build of the engine leaves out the non-commercial ones (the TeleGeography cable data, CC BY-NC-SA; the Bhote Koshi event pack and coordinates, CC BY-NC), and shows only layers whose sources permit commercial display. The source-by-source review, with the attribution each requires, is in `ORYN_LICENCE_REVIEW.md` at the repository root.
 
 ```
 MIT License

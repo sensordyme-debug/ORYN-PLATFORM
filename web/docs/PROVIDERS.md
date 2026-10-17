@@ -18,7 +18,7 @@ Production gates: email, GDELT, NASA HLS reads, and AI summaries stay off in pro
 | Earth Search (Sentinel-2 L2A COGs) | Yes — search, COG range reads, full pipeline | Items flagged `earthsearch:boa_offset_applied` already have the BOA offset applied although `raster:bands` still lists −0.1; the analyzer is told and does not apply it twice. A plausibility check refuses mismatched scaling. |
 | Planetary Computer (S1 RTC, Landsat C2 L2, WorldCover, IO LULC) | Yes — anonymous SAS tokens, full pipeline | Sentinel-1 RTC scenes are not on a common grid; water change compares only within one relative orbit and resamples the baseline. |
 | NOAA / NWS | Yes — alerts, forecasts, station observations | Daily precipitation totals are produced only when every hour of the local day has a report; missing values are never treated as zero. |
-| Open-Meteo | Yes (non-commercial endpoint, development) | **Free API is non-commercial only.** In production set `OPEN_METEO_API_KEY` (commercial plan) or it stays disabled. History is ERA5-based reanalysis → stored as `model_estimate`. |
+| Open-Meteo | Yes (non-commercial endpoint, development) | **Free API is non-commercial only.** Disabled in every environment unless `OPEN_METEO_API_KEY` (commercial plan) is set, or `OPEN_METEO_ALLOW_NONCOMMERCIAL=true` for a non-commercial evaluation. History is ERA5-based reanalysis → stored as `model_estimate`. |
 | GDELT DOC 2.0 | **No** | Every request from the development network on 2026-10-15 returned `429` (including a single request after 6 s idle), and no article was ever stored. Requests are now spaced across processes, a 429 starts a shared 10-minute cooldown, and the job retries after it. **Off in production** until `oryn:verify -- gdelt` succeeds from the deployment's egress address. `publishedAt` is GDELT's first-seen time. |
 | Census TIGERweb | Yes — Tarboro boundary (GEOID 3766700) imported | Public domain. |
 | Census Geocoder | Yes | U.S. addresses only. |
@@ -163,12 +163,15 @@ Map context only (`src/server/public-events/`); fetched by the **web** service o
 - **Credentials:** none. **Commercial use:** allowed. **Gated:** off in production until `node dist/verify.mjs <id>` passes and the id is added to the web service's `ORYN_VERIFIED_INTEGRATIONS`.
 - Not used (licence or key): NASA FIRMS (needs a MAP_KEY), Esri World Imagery (Esri terms), Cesium ion / Google 3D tiles (keys, non-commercial or metered).
 
-### Intelligence globe — CelesTrak (`celestrak`), Caltrans CCTV (`caltrans-cctv`), NASA GIBS
+### Intelligence globe — God's Eye View engine, and the legacy CelesTrak and Caltrans adapters
 
-- **CelesTrak GP elements** — `https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=json` and `?NAME=SENTINEL-1&FORMAT=json` (two small requests). CelesTrak updates every 2 hours and temporarily blocks clients that download more often (HTTP 403); ORYN downloads at most once per 2 hours, waits 30 minutes after a failure, and keeps serving the last good elements marked stale. Used only for the satellites behind ORYN's imagery (Sentinel-2A/2B/2C, Landsat 8/9, Sentinel-1A/1C/1D). Positions and overpasses are computed server-side (satellite.js SGP4); browsers never receive the raw elements. No formal licence is published; attribution “CelesTrak”.
-- **Caltrans CWWP2 CCTV** — `https://cwwp2.dot.ca.gov/data/d{N}/cctv/cctvStatusD{NN}.json`, N = 1–12 (~10 MB in total). Refreshed at most every 12 hours on demand. In-service cameras only; media URLs must be on `cwwp2.dot.ca.gov` (stills) or `wzmedia.dot.ca.gov` (HLS). Stills refresh every ~2 minutes and carry their capture time in `Last-Modified`; many cameras stream live H.264 HLS (720p) with CORS open. Some listed streams are offline (playlist 404) — the server-side health check reports that. Caltrans states the files “are available for integration into your application … There is no charge for the use of this data”, and that it neither retains nor archives footage. ORYN never relays or records video (no egress cost, nothing stored).
-- **NASA GIBS** — Blue Marble (base) and NOAA-20 VIIRS corrected reflectance (daily, by UTC date) WMTS tiles, loaded by the browser. Keyless; NASA imagery is free to use with credit.
-- Not used: Google Photorealistic 3D Tiles / Cesium ion (keys, metered or non-commercial), Esri World Imagery (Esri terms), OpenSky (non-commercial), AISStream (key), NCDOT cameras (developer key), NYC DOT / TfL (agreements), DelDOT and Maryland CHART (no published reuse terms), Iowa DOT (site terms limit use to non-commercial; pending clarification).
+The Intelligence globe is the God's Eye View engine (`/engine/`). In ORYN it offers only layers whose sources permit commercial display, and refuses the rest with the reason. These are defined in `src/ui/host/hostLicences.js` at the repository root and listed in `ORYN_LICENCE_REVIEW.md`.
+
+- **Offered:** USGS earthquakes, NASA FIRMS, NOAA NHC/nowCOAST/GFS, ECMWF Open Data, NASA GIBS, ECCC air quality, OSM-derived reference layers, adsb.lol flights, and four road-camera operators whose open licences cover their images.
+- **Basemap:** NASA GIBS Blue Marble plus USDA NAIP via USGS The National Map.
+- **Not used:** Esri World Imagery, OSM standard tiles, OpenSky, adsbdb, Google, TomTom, Mapillary, TeleGeography, the Bhote Koshi pack, Re:Earth/Mapterhorn terrain, CelesTrak, NIFC perimeters in the engine, and Photon/Nominatim.
+
+ORYN's own adapters for **CelesTrak** (`celestrak`), **Caltrans CCTV** (`caltrans-cctv`) and **NIFC WFIGS** (`nifc-wildfire-perimeters`) are behind a licence gate. Their providers publish no terms that permit commercial display, so they are off in every environment until `ORYN_LICENCE_CLEARED_INTEGRATIONS` lists them (`src/server/integrations.ts`).
 
 ## Adding a provider
 
