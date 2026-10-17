@@ -51,8 +51,8 @@ describe("notes respect AOI restrictions", () => {
       await expect(listNotes(w.restricted.access, type, id)).rejects.toMatchObject({ status: 404 });
       await expect(addNote(w.restricted.access, type, id, "should fail")).rejects.toMatchObject({ status: 404 });
     }
-    const [{ n }] = await rows<{ n: number }>`select count(*)::int as n from notes where body = 'should fail'`;
-    expect(n).toBe(0);
+    const [row] = await rows<{ n: number }>`select count(*)::int as n from notes where body = 'should fail'`;
+    expect(row?.n).toBe(0);
   });
 
   it("org-wide reports: a restricted member sees notes only on reports they created", async () => {

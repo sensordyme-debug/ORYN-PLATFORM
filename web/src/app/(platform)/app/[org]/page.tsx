@@ -3,13 +3,11 @@ import { CompleteOnboardingButton } from "@/components/platform/onboarding";
 import { Badge, DataAge, EmptyState, EVIDENCE_TONE, LinkButton, Notice, PageHeader, Panel, SEVERITY_TONE, Stat, Table, td, th } from "@/components/platform/ui";
 import { ageInDays, formatDate, formatDateTime, formatNumber, relativeTime } from "@/lib/format";
 import { formatArea } from "@/lib/geo";
-import { aoiVisibleTo } from "@/server/aois/service";
-import { currentModelKeys } from "@/server/analytics/registry";
+import { sensorLabel } from "@/lib/sensors";
 import { getOrgPageAccess } from "@/server/authz/next";
+import { overviewData } from "@/server/results/overview";
 
 export const metadata = { title: "Overview" };
-
-type FieldRow = { id: string; name: string; area_m2: number; crop: string | null; latest_at: Date | null; latest_mean: number | null; prev_mean: number | null; prev_at: Date | null; masked: number | null; open_alerts: number; unreviewed: number };
 
 export default async function OverviewPage(props: PageProps<"/app/[org]">) {
   const { org } = await props.params;
@@ -17,57 +15,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
   const tz = access.org.settings.timezone ?? "UTC";
   const isAg = access.org.kind === "agriculture";
 
-  const data = await access.tx(async (tx) => {
-    const [stats] = await tx<{ aois: number; current: number; open_alerts: number; unreviewed: number; queued: number; failed: number; rules: number; members: number }[]>`
-      select
-        (select count(*)::int from aois a where a.org_id = ${access.org.id} and a.status = 'active' ${aoiVisibleTo(tx, access)}) as aois,
-        (select count(distinct o.aoi_id)::int from observations o join aois a on a.id = o.aoi_id
-          where o.org_id = ${access.org.id} and o.status = 'valid' and o.is_current and o.observed_at > now() - interval '10 days' ${aoiVisibleTo(tx, access)}) as current,
-        (select count(*)::int from alerts where org_id = ${access.org.id} and status = 'open') as open_alerts,
-        (select count(*)::int from detections where org_id = ${access.org.id} and verification_status = 'unverified' and evidence_grade in ('moderate', 'strong')
-            and model_id || '@' || model_version = any(${currentModelKeys()})) as unreviewed,
-        (select count(*)::int from jobs where org_id = ${access.org.id} and status in ('queued', 'running')) as queued,
-        (select count(*)::int from jobs where org_id = ${access.org.id} and status in ('failed', 'dead')) as failed,
-        (select count(*)::int from alert_rules where org_id = ${access.org.id} and enabled) as rules,
-        (select count(*)::int from memberships where org_id = ${access.org.id}) as members`;
-    const alerts = await tx<{ id: string; title: string; severity: string; status: string; observed_at: Date | null; created_at: Date; aoi_name: string; from_reprocessing: boolean }[]>`
-      select al.id, al.title, al.severity, al.status, al.observed_at, al.created_at, a.name as aoi_name, al.from_reprocessing
-        from alerts al join aois a on a.id = al.aoi_id
-       where al.org_id = ${access.org.id} and al.status in ('open', 'acknowledged') ${aoiVisibleTo(tx, access)}
-       order by case al.severity when 'critical' then 0 when 'high' then 1 when 'moderate' then 2 when 'low' then 3 else 4 end, al.created_at desc
-       limit 8`;
-    const fields = isAg
-      ? await tx<FieldRow[]>`
-          select a.id, a.name, a.area_m2, a.metadata->>'crop' as crop, l.observed_at as latest_at, (l.metrics->>'mean')::float8 as latest_mean,
-                 (p.metrics->>'mean')::float8 as prev_mean, p.observed_at as prev_at, (l.quality->>'masked_fraction')::float8 as masked,
-                 (select count(*)::int from alerts al where al.aoi_id = a.id and al.status in ('open','acknowledged')) as open_alerts,
-                 (select count(*)::int from detections d where d.aoi_id = a.id and d.verification_status = 'unverified'
-                    and d.evidence_grade in ('moderate', 'strong') and d.model_id || '@' || d.model_version = any(${currentModelKeys()})) as unreviewed
-            from aois a
-            left join lateral (select * from observations o where o.aoi_id = a.id and o.kind = 'ndvi' and o.status = 'valid' and o.is_current order by o.observed_at desc limit 1) l on true
-            left join lateral (select * from observations o where o.aoi_id = a.id and o.kind = 'ndvi' and o.status = 'valid' and o.is_current and o.observed_at < l.observed_at order by o.observed_at desc limit 1) p on true
-           where a.org_id = ${access.org.id} and a.status = 'active' and a.kind = 'field' ${aoiVisibleTo(tx, access)}
-           order by a.name`
-      : [];
-    const changes = await tx<{ id: string; title: string; type: string; evidence_grade: string; area_m2: number | null; comparison_observed_at: Date | null; aoi_name: string }[]>`
-      select d.id, d.title, d.type, d.evidence_grade, d.area_m2, d.comparison_observed_at, a.name as aoi_name
-        from detections d join aois a on a.id = d.aoi_id
-       where d.org_id = ${access.org.id} and d.verification_status in ('unverified', 'needs_field_check') and d.evidence_grade in ('moderate', 'strong')
-         and d.model_id || '@' || d.model_version = any(${currentModelKeys()}) ${aoiVisibleTo(tx, access)}
-       order by d.comparison_observed_at desc nulls last limit 8`;
-    const warnings = await tx<{ id: string; title: string; severity: string | null; event_end: Date | null; aoi_name: string }[]>`
-      select distinct on (e.external_id) e.id, e.title, e.severity, e.event_end, a.name as aoi_name
-        from external_events e join aois a on a.id = e.aoi_id
-       where e.org_id = ${access.org.id} and e.event_kind = 'weather_warning' and (e.event_end is null or e.event_end > now())
-       order by e.external_id, e.published_at desc limit 6`;
-    const news = !isAg
-      ? await tx<{ title: string; url: string; domain: string | null; published_at: Date | null; category: string; aoi_name: string }[]>`
-          select n.title, n.url, n.domain, n.published_at, m.category, a.name as aoi_name
-            from aoi_news_matches m join news_articles n on n.id = m.article_id join aois a on a.id = m.aoi_id
-           where m.org_id = ${access.org.id} order by n.published_at desc nulls last limit 6`
-      : [];
-    return { stats: stats!, alerts, fields, changes, warnings, news };
-  });
+  const data = await overviewData(access);
 
   const s = data.stats;
   const showOnboarding = !access.org.onboardingCompletedAt && access.can("org.manage");
@@ -112,7 +60,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         {isAg ? (
-          <Panel title="Field health" description="Latest usable NDVI per field and change from the previous usable image. A drop can reflect harvest or seasonal change — check the field before acting." bodyClassName="p-0">
+          <Panel title="Field health" description="Latest usable NDVI per field and change from the previous usable image of the same sensor (Sentinel-2 and Landsat values are never compared). A drop can reflect harvest or seasonal change — check the field before acting." bodyClassName="p-0">
             {data.fields.length === 0 ? (
               <EmptyState title="No fields yet" className="m-4" action={access.can("aoi.write") ? <LinkButton href={`/app/${org}/areas/new`} variant="primary">Add fields</LinkButton> : undefined} />
             ) : (
@@ -127,7 +75,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
                         <td className={`${td} tabular-nums`}>{formatNumber(f.latest_mean, 2)}</td>
                         <td className={`${td} tabular-nums`}>
                           {delta === null ? "—" : <span className={delta <= -0.1 ? "text-data-alert" : delta >= 0.1 ? "text-data-veg" : ""}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</span>}
-                          {f.prev_at ? <span className="block text-[0.6875rem] text-bone-50/40">vs {formatDate(f.prev_at, tz)}</span> : null}
+                          {f.prev_at ? <span className="block text-[0.6875rem] text-bone-50/40">vs {formatDate(f.prev_at, tz)} · {sensorLabel(f.latest_collection)}</span> : f.latest_at ? <span className="block text-[0.6875rem] text-bone-50/40">no earlier {sensorLabel(f.latest_collection)} image</span> : null}
                         </td>
                         <td className={td}>{f.latest_at ? <DataAge at={f.latest_at} timeZone={tz} /> : <span className="text-bone-50/45">No usable image</span>}</td>
                         <td className={td}>

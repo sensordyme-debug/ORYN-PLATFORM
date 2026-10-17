@@ -11,6 +11,7 @@ import { Badge, Button, KeyValues, Notice, ResultClassBadge } from "@/components
 import { AOI_KIND_LABEL, DATA_SOURCES, type AoiKind } from "@/lib/aoi-config";
 import { ageInDays, dataCurrency, formatDate, formatDateTime, formatNumber, formatPercent, relativeTime } from "@/lib/format";
 import { formatArea, formatLatLon } from "@/lib/geo";
+import { sensorLabel, sensorSeries, sensorsIn } from "@/lib/sensors";
 
 export type InspectorPerms = { write: boolean; run: boolean; review: boolean; notes: boolean; reports: boolean };
 
@@ -85,7 +86,13 @@ export function AoiInspector({
   const [chartKindState, setChartKindState] = useState<"ndvi" | "ndmi">("ndvi");
   const chartKind = chartKindProp ?? chartKindState;
   const setChartKind = onChartKindChange ?? setChartKindState;
-  const chartObs = chartKind === "ndmi" && ndmi.length ? ndmi : ndvi;
+  const kindObs = chartKind === "ndmi" && ndmi.length ? ndmi : ndvi;
+  // One sensor per chart: Sentinel-2 and Landsat index values are not
+  // comparable, and several tiles of one pass are a single acquisition.
+  const sensors = useMemo(() => sensorsIn(kindObs), [kindObs]);
+  const [sensorChoice, setSensorChoice] = useState<string | null>(null);
+  const sensor = sensorChoice && sensors.includes(sensorChoice) ? sensorChoice : (sensors[0] ?? null);
+  const chartObs = useMemo(() => (sensor ? sensorSeries(kindObs, sensor) : []), [kindObs, sensor]);
   const latestValid = useMemo(() => (obs ?? []).find((o) => o.status === "valid"), [obs]);
   const latestNdvi = ndvi.find((o) => o.status === "valid");
   const latestAcquired = assets?.[0]?.asset.acquiredAt ?? null;
@@ -200,6 +207,7 @@ export function AoiInspector({
 
       {ndvi.length > 0 ? (
         <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
           {ndmi.length > 0 ? (
             <div className="flex overflow-hidden self-start rounded-[3px] border border-bone-50/15 text-[0.6875rem]" role="group" aria-label="Index shown in the chart">
               {(["ndvi", "ndmi"] as const).map((k) => (
@@ -209,11 +217,21 @@ export function AoiInspector({
               ))}
             </div>
           ) : null}
+          {sensors.length > 1 ? (
+            <div className="flex overflow-hidden self-start rounded-[3px] border border-bone-50/15 text-[0.6875rem]" role="group" aria-label="Sensor shown in the chart">
+              {sensors.map((c) => (
+                <button key={c} onClick={() => setSensorChoice(c)} aria-pressed={sensor === c} className={sensor === c ? "bg-bone-50 px-2 py-0.5 text-ink-900" : "px-2 py-0.5 text-bone-50/70"}>
+                  {sensorLabel(c)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          </div>
           <SeriesChart
             title={
               chartKind === "ndmi" && ndmi.length
-                ? "NDMI mean over time (band: p10–p90) · daily precipitation — canopy water content, not soil moisture"
-                : "NDVI mean over time (band: p10–p90) · daily precipitation"
+                ? `NDMI mean over time, ${sensorLabel(sensor)} only, one point per pass (band: p10–p90) · daily precipitation — canopy water content, not soil moisture`
+                : `NDVI mean over time, ${sensorLabel(sensor)} only, one point per pass (band: p10–p90) · daily precipitation`
             }
             points={series}
             precip={precip}
