@@ -10,9 +10,15 @@
  * then matches every new source asset against all subscribed AOIs whose
  * geometry intersects its footprint — across tenants — and queues processing
  * only for those (aoi, asset) pairs. Areas are never rescanned wholesale.
+ *
+ * Alert rules are also evaluated on a schedule (trigger "schedule"), not
+ * only when new data arrives: otherwise a rule such as stale_observations
+ * could never fire when imagery stops arriving altogether. Every monitored
+ * AOI with an applicable enabled rule is evaluated once per
+ * SCHEDULED_EVALUATION_MS window.
  */
 import { createHash } from "node:crypto";
-import { withSystem } from "@/server/db/client";
+import { withSystem, type Tx } from "@/server/db/client";
 import { log } from "@/server/log";
 import { enqueueTx } from "@/server/jobs/queue";
 import { JOB } from "@/server/jobs/types";
@@ -28,7 +34,40 @@ const POLL_LOOKBACK_DAYS = 10;
 
 const bucket = (ms: number) => Math.floor(Date.now() / ms);
 
-export async function schedulerTick(): Promise<{ dueAois: number; catalogJobs: number; contextJobs: number }> {
+/** How often every monitored AOI with an enabled rule is re-evaluated. */
+export const SCHEDULED_EVALUATION_MS = 6 * 3_600_000;
+/** Per tick; the rest are picked up by the following ticks of the same window. */
+const SCHEDULED_EVALUATION_BATCH = 500;
+
+export const scheduledEvaluationKey = (aoiId: string, window = bucket(SCHEDULED_EVALUATION_MS)) => `alerts-schedule:${aoiId}:${window}`;
+
+/** Queue one schedule-triggered alert evaluation per due AOI in the current window. */
+export async function enqueueScheduledEvaluations(tx: Tx): Promise<number> {
+  const window = bucket(SCHEDULED_EVALUATION_MS);
+  const due = await tx<{ id: string; org_id: string }[]>`
+    select a.id, a.org_id
+      from aois a
+     where a.status = 'active' and a.monitoring_enabled
+       and exists (select 1 from alert_rules r where r.org_id = a.org_id and r.enabled and (r.aoi_id is null or r.aoi_id = a.id))
+       and not exists (select 1 from jobs j where j.idempotency_key = 'alerts-schedule:' || a.id || ':' || ${window})
+     order by a.id
+     limit ${SCHEDULED_EVALUATION_BATCH}`;
+  let created = 0;
+  for (const a of due) {
+    const r = await enqueueTx(tx, {
+      orgId: a.org_id,
+      type: JOB.alertsEvaluate,
+      payload: { aoiId: a.id, trigger: { kind: "schedule" } },
+      priority: 95,
+      timeoutSeconds: 300,
+      idempotencyKey: scheduledEvaluationKey(a.id, window),
+    });
+    if (r.created) created++;
+  }
+  return created;
+}
+
+export async function schedulerTick(): Promise<{ dueAois: number; catalogJobs: number; contextJobs: number; scheduledEvaluations: number }> {
   const result = await withSystem("scheduler.tick", async (tx) => {
     const due = await tx<{ id: string; org_id: string; monitoring_interval_hours: number; data_sources: string[]; news_terms: string[] }[]>`
       select id, org_id, monitoring_interval_hours, data_sources, news_terms
@@ -87,6 +126,8 @@ export async function schedulerTick(): Promise<{ dueAois: number; catalogJobs: n
     return { dueAois: due.length, catalogJobs, contextJobs };
   });
 
+  const scheduledEvaluations = await withSystem("scheduler.alert_evaluations", (tx) => enqueueScheduledEvaluations(tx));
+
   await withSystem("scheduler.periodic", async (tx) => {
     await enqueueTx(tx, { orgId: null, type: JOB.alertsEscalate, payload: {}, priority: 70, idempotencyKey: `escalate:${bucket(15 * 60_000)}`, timeoutSeconds: 300 });
     await enqueueTx(tx, { orgId: null, type: JOB.providerHealth, payload: {}, priority: 150, idempotencyKey: `health:${bucket(30 * 60_000)}`, timeoutSeconds: 300 });
@@ -97,6 +138,6 @@ export async function schedulerTick(): Promise<{ dueAois: number; catalogJobs: n
     }
   });
 
-  if (result.dueAois) log.info("scheduler.tick", result);
-  return result;
+  if (result.dueAois || scheduledEvaluations) log.info("scheduler.tick", { ...result, scheduledEvaluations });
+  return { ...result, scheduledEvaluations };
 }

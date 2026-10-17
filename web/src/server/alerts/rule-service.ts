@@ -10,6 +10,10 @@
  *    to the caller; aoi_restricted members may only manage rules for AOIs
  *    granted to them (never org-wide rules).
  *  - Every mutation is audited in the same transaction.
+ *  - Creating, changing or enabling a rule queues an evaluation of the
+ *    affected AOIs against the data ORYN already holds, in the same
+ *    transaction (otherwise the rule would wait for new data or the
+ *    scheduled sweep in jobs/scheduler.ts).
  */
 import { z } from "zod";
 import { ORG_ROLES, type OrgRole } from "@/lib/authz";
@@ -20,6 +24,34 @@ import { jsonb, type Tx } from "@/server/db/client";
 import { DomainError, notFoundError } from "@/server/errors";
 import { isRuleType, parseRuleParams, RULE_TYPES, SEVERITIES, type RuleTypeId, type Severity } from "@/server/alerts/rules";
 import { visibleAoiIds } from "@/server/alerts/scope";
+import { enqueueTx } from "@/server/jobs/queue";
+import { JOB } from "@/server/jobs/types";
+
+/** Most AOIs an org-wide rule change evaluates at once; the scheduled sweep covers the rest. */
+const RULE_EVALUATION_LIMIT = 2000;
+
+async function queueRuleEvaluation(tx: Tx, orgId: string, ruleId: string, aoiId: string | null): Promise<number> {
+  const aois = aoiId
+    ? [{ id: aoiId }]
+    : await tx<{ id: string }[]>`
+        select id from aois where org_id = ${orgId} and status = 'active' and monitoring_enabled order by id limit ${RULE_EVALUATION_LIMIT}`;
+  // One evaluation per version of the rule: updated_at is touched by every
+  // update (touch_updated_at), so an edit is never coalesced with an
+  // evaluation of the previous parameters.
+  const [v] = await tx<{ version: string }[]>`
+    select (extract(epoch from updated_at) * 1000000)::bigint::text as version from alert_rules where id = ${ruleId} and org_id = ${orgId}`;
+  for (const a of aois) {
+    await enqueueTx(tx, {
+      orgId,
+      type: JOB.alertsEvaluate,
+      payload: { aoiId: a.id, trigger: { kind: "schedule" } },
+      priority: 60,
+      timeoutSeconds: 300,
+      idempotencyKey: `alerts-rule:${ruleId}:${a.id}:${v?.version ?? Date.now()}`,
+    });
+  }
+  return aois.length;
+}
 
 export type AlertRule = {
   id: string;
@@ -202,6 +234,7 @@ export async function createAlertRule(access: OrgAccess, input: AlertRuleInput):
       ip: access.meta.ip,
       userAgent: access.meta.userAgent,
     });
+    if (r.enabled) await queueRuleEvaluation(tx, access.org.id, row!.id, r.aoiId);
     return toRule(await findRule(tx, access, row!.id));
   });
 }
@@ -245,6 +278,7 @@ export async function updateAlertRule(access: OrgAccess, ruleId: string, patch: 
       ip: access.meta.ip,
       userAgent: access.meta.userAgent,
     });
+    if (r.enabled) await queueRuleEvaluation(tx, access.org.id, cur.id, r.aoiId);
     return toRule(await findRule(tx, access, cur.id));
   });
 }
@@ -264,6 +298,7 @@ export async function setAlertRuleEnabled(access: OrgAccess, ruleId: string, ena
         ip: access.meta.ip,
         userAgent: access.meta.userAgent,
       });
+      if (enabled) await queueRuleEvaluation(tx, access.org.id, cur.id, cur.aoi_id);
     }
     return toRule({ ...cur, enabled });
   });
