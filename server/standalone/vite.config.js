@@ -29,5 +29,6 @@ export default defineConfig(({ command, mode }) => {
     allowedHosts: resolveAllowedHosts(process.env.GEV_ALLOWED_HOSTS),
     command,
     base: process.env.GEV_BASE_PATH,
+    excludeNoncommercial: process.env.GEV_EXCLUDE_NONCOMMERCIAL === '1',
   });
 });

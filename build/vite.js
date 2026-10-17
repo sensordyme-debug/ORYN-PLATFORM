@@ -5,6 +5,7 @@ import cesium from 'vite-plugin-cesium';
 import { DEFAULT_ALLOWED_HOSTS, hostCheckPlugin } from './allowedHosts.js';
 import { embedFramingPlugin } from './embed-framing.js';
 import { panelBuildPlugin } from './panel.js';
+import { noncommercialExclusionPlugin } from './noncommercial.js';
 
 /**
  * Content-Security-Policy for every document the dev/preview server serves.
@@ -114,6 +115,7 @@ export function createBrowserViteConfig({
   allowedHosts = DEFAULT_ALLOWED_HOSTS,
   command,
   base,
+  excludeNoncommercial = false,
 } = {}) {
   const basePath = normalizeBasePath(base);
   return {
@@ -130,6 +132,8 @@ export function createBrowserViteConfig({
       panelBuildPlugin(),
       // Only a sub-path deployment needs Cesium's static copy relocated.
       ...(basePath === '/' ? [] : [cesiumBasePathPlugin(basePath)]),
+      // A commercial build drops the non-commercially licensed datasets.
+      ...(excludeNoncommercial ? [noncommercialExclusionPlugin()] : []),
     ],
     ...(publicDir === undefined ? {} : { publicDir }),
     // A production build must not clean the dependency cache a running dev

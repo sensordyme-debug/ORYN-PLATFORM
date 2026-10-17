@@ -47,6 +47,11 @@ export function createKeylessTerrainResource(
   });
 }
 
+/** The smooth WGS84 ellipsoid: no terrain service at all. */
+export async function createEllipsoidTerrain() {
+  return { provider: new Cesium.EllipsoidTerrainProvider() };
+}
+
 export async function createKeylessTerrain() {
   try {
     return {

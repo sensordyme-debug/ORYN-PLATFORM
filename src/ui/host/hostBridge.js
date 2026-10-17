@@ -13,6 +13,7 @@ import * as Cesium from 'cesium';
 import { layerSnapshot } from '../../data/layerSnapshot.js';
 import { getSelectedEntityContext } from '../../data/contextStore.js';
 import { flyToGlobeView, flyToLandmark } from '../../locations.js';
+import { hostLayerLicence } from './hostLicences.js';
 
 export const HOST_BRIDGE_VERSION = 1;
 export const HOST_READY_MESSAGE = 'gev:host-ready';
@@ -240,7 +241,10 @@ export function describeRowControls(controls) {
 }
 
 /** One layer row for the host: identity, status and controls. */
-export function describeLayer(row, { now = Date.now(), controls = null } = {}) {
+export function describeLayer(
+  row,
+  { now = Date.now(), controls = null, licence = null } = {},
+) {
   const snapshot = layerSnapshot(row, { now });
   return {
     id: snapshot.id,
@@ -257,6 +261,15 @@ export function describeLayer(row, { now = Date.now(), controls = null } = {}) {
     requiresKeyId: row?.requiresKeyId || null,
     showInTogglePanel: row?.showInTogglePanel !== false,
     controls: describeRowControls(controls),
+    licence: licence
+      ? {
+          offered: licence.status === 'offered',
+          nature: licence.nature,
+          reason: licence.reason,
+          note: licence.note,
+          sources: licence.sources.map((source) => ({ ...source })),
+        }
+      : null,
   };
 }
 
@@ -310,7 +323,12 @@ export function installHostBridge({ application, host, windowRef = window }) {
     const { dataManager } = engineParts();
     const now = Date.now();
     return new Map(
-      dataManager.getAll().map((row) => [row.id, describeLayer(row, { now })]),
+      dataManager
+        .getAll()
+        .map((row) => [
+          row.id,
+          describeLayer(row, { now, licence: hostLayerLicence(host, row.id) }),
+        ]),
     );
   };
   const rowControls = (id) => {
@@ -438,12 +456,17 @@ export function installHostBridge({ application, host, windowRef = window }) {
         describeLayer(row, {
           now,
           controls: rowControls(row.id),
+          licence: hostLayerLicence(host, row.id),
         }),
       );
     },
     async setLayerEnabled(id, enabled) {
       const { dataManager } = engineParts();
       if (!dataManager.layers.has(id)) throw new Error(`Unknown layer: ${id}`);
+      // The lifecycle guard (hostLicences.js) refuses too; this says why.
+      const policy = hostLayerLicence(host, id);
+      if (enabled && policy && policy.status !== 'offered')
+        throw new Error(`Not available in this deployment: ${policy.reason}`);
       return dataManager.setEnabled(id, Boolean(enabled), { origin: 'user' });
     },
     async clearLayers() {

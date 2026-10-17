@@ -24,6 +24,12 @@ export function createStandaloneApplication({
   allowQaRegistration = false,
   startupFlight = true,
   providerSettings = true,
+  // A host restricts imagery to stacks whose terms it has verified
+  // (mapOptions.allowedStackIds) and can switch off the Google 3D token
+  // probe; onData sees the layer manager before any layer is restored.
+  mapOptions = {},
+  googleTokenProbe = true,
+  onData = null,
 }) {
   if (constructed)
     throw new Error('The standalone application already owns this page');
@@ -56,9 +62,11 @@ export function createStandaloneApplication({
         googleApiKey,
         // Without a key, Google 3D can still load with tokens from the
         // app's server when it offers them.
-        googleTokens: googleApiKey ? null : createGoogleTokenSource(),
+        googleTokens:
+          googleApiKey || !googleTokenProbe ? null : createGoogleTokenSource(),
         cesiumToken,
         loaderStatus,
+        mapOptions,
       });
       catalog = createStandaloneCatalog({
         sources,
@@ -85,7 +93,12 @@ export function createStandaloneApplication({
         startupFlight,
       }),
     createData: (context) =>
-      createStandaloneData({ ...context, allowQaRegistration, catalog }),
+      createStandaloneData({
+        ...context,
+        allowQaRegistration,
+        catalog,
+        ...(onData ? { onData } : {}),
+      }),
     createTools: (context) =>
       createStandaloneTools({
         ...context,

@@ -3,6 +3,10 @@ import { describeError } from './standalone/errors.js';
 import { t } from './i18n/index.js';
 import { applyHostDocument, resolveHost } from './ui/host/hostMode.js';
 import { installHostBridge } from './ui/host/hostBridge.js';
+import {
+  HOST_MAP_STACKS,
+  installHostLicenceGuard,
+} from './ui/host/hostLicences.js';
 
 // A host application (ORYN) runs this engine as its analytics workspace with
 // `?host=oryn`; see src/ui/host/. Without it the standalone app is unchanged.
@@ -17,6 +21,20 @@ const application = createStandaloneApplication({
   startupFlight: !host,
   // Provider keys are configured on the engine server, not from the host page.
   providerSettings: !host,
+  // A host shows only layers and imagery whose licences it has verified
+  // (src/ui/host/hostLicences.js), and never probes for Google 3D tokens.
+  ...(host
+    ? {
+        mapOptions: {
+          allowedStackIds: HOST_MAP_STACKS[host],
+          terrain: 'ellipsoid',
+        },
+        googleTokenProbe: false,
+        // Place search stays offline: coordinates and bundled names only.
+        geospatial: { onlineGeocoding: false },
+        onData: (dataManager) => installHostLicenceGuard(dataManager, host),
+      }
+    : {}),
 });
 
 if (host) installHostBridge({ application, host });

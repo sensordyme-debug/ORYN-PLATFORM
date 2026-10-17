@@ -38,3 +38,18 @@ export const MAP_STACKS = [
     requiresIon: false,
   },
 ];
+
+/**
+ * U.S. public-domain imagery only: NASA GIBS Blue Marble worldwide, and USDA
+ * NAIP orthoimagery from USGS The National Map at close range over the
+ * United States. Offered only to a host that allows it (createDefaultMapSources
+ * `allowedStackIds`), where commercial terms rule out the stacks above; the
+ * standalone catalog, voice tools and share links are unchanged.
+ */
+export const PUBLIC_IMAGERY_STACK = Object.freeze({
+  id: 'public-imagery',
+  label: 'NASA · USGS', // i18n-ignore: imagery product names
+  shortLabel: 'PUB',
+  kind: 'public-imagery',
+  requiresIon: false,
+});

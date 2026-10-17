@@ -16,6 +16,10 @@ import { createAlpsGeocoder } from './alpsGeocoder.js';
  * `presets` is the caller's bundled place data. It is passed in rather than
  * imported so this package keeps reading no application state; with none
  * supplied there is simply no bundled-name provider.
+ *
+ * `onlineGeocoding: false` keeps only the offline providers: a deployment
+ * that has not cleared the public geocoders' terms (Photon fair use,
+ * the OSMF Nominatim policy) or pays for none sends no query anywhere.
  */
 export function createDefaultPlaceSearch({
   resolveApiKey,
@@ -25,6 +29,7 @@ export function createDefaultPlaceSearch({
   providers = {},
   presets = null,
   geocoding = null,
+  onlineGeocoding = true,
 } = {}) {
   if (geocoding && geocoding.provider !== 'nominatim')
     throw new TypeError('Unsupported geocoding provider');
@@ -39,45 +44,47 @@ export function createDefaultPlaceSearch({
       createCoordinateGeocoder(),
       ...(presets ? [createPresetGeocoder({ presets })] : []),
       createAlpsGeocoder(),
-      ...(selected
-        ? [selected]
-        : [
-            // Google answers through the local proxy, which holds the server
-            // key: its Geocoding web service refuses referrer-restricted keys,
-            // so calling it from here would force the bundled browser key to be
-            // left unrestricted (#363). That key still gates the provider,
-            // because a keyless session must not spend a request to learn it
-            // has no Google: the proxy's "not configured" reads as an
-            // unanswered provider, which stops the chain caching the negative
-            // Photon or Nominatim then produces.
-            createGoogleGeocoder({
-              request(query, { bias, signal }) {
-                if (!resolveApiKey?.()) return null;
-                const params = new URLSearchParams({ address: query });
-                if (bias) params.set('bounds', bias);
-                return fetchImpl(
-                  `${endpoints.geocode || '/api/google/geocode'}?${params}`,
-                  { signal },
-                );
-              },
-            }),
-            createPhotonGeocoder({ fetchImpl, endpoint: endpoints.photon }),
-            // Last resort: the local Nominatim route, which answers with no key when
-            // neither of the two above did. It speaks the same result shape, so it
-            // rides the existing Google adapter rather than needing its own.
-            createGoogleGeocoder({
-              request(query, { bias, signal }) {
-                const params = new URLSearchParams({ q: query });
-                if (bias) params.set('bounds', bias);
-                return fetchImpl(
-                  `${endpoints.nominatim || '/api/geocode'}?${params}`,
-                  {
-                    signal,
-                  },
-                );
-              },
-            }),
-          ]),
+      ...(!onlineGeocoding
+        ? []
+        : selected
+          ? [selected]
+          : [
+              // Google answers through the local proxy, which holds the server
+              // key: its Geocoding web service refuses referrer-restricted keys,
+              // so calling it from here would force the bundled browser key to be
+              // left unrestricted (#363). That key still gates the provider,
+              // because a keyless session must not spend a request to learn it
+              // has no Google: the proxy's "not configured" reads as an
+              // unanswered provider, which stops the chain caching the negative
+              // Photon or Nominatim then produces.
+              createGoogleGeocoder({
+                request(query, { bias, signal }) {
+                  if (!resolveApiKey?.()) return null;
+                  const params = new URLSearchParams({ address: query });
+                  if (bias) params.set('bounds', bias);
+                  return fetchImpl(
+                    `${endpoints.geocode || '/api/google/geocode'}?${params}`,
+                    { signal },
+                  );
+                },
+              }),
+              createPhotonGeocoder({ fetchImpl, endpoint: endpoints.photon }),
+              // Last resort: the local Nominatim route, which answers with no key when
+              // neither of the two above did. It speaks the same result shape, so it
+              // rides the existing Google adapter rather than needing its own.
+              createGoogleGeocoder({
+                request(query, { bias, signal }) {
+                  const params = new URLSearchParams({ q: query });
+                  if (bias) params.set('bounds', bias);
+                  return fetchImpl(
+                    `${endpoints.nominatim || '/api/geocode'}?${params}`,
+                    {
+                      signal,
+                    },
+                  );
+                },
+              }),
+            ]),
     ],
   });
   const operations = createHttpGeospatialProvider({
