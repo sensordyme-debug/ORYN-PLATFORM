@@ -71,7 +71,8 @@ export async function generateReport(
       }),
     );
     const content = buildReportContent(source);
-    content.summary = await summarizeReport(content, { ai: params.ai_summary !== false, client: deps.summaryClient });
+    // The AI narrative is opt-in everywhere (the UI checkbox and the API alike).
+    content.summary = await summarizeReport(content, { ai: params.ai_summary === true, client: deps.summaryClient });
     const pdf = await renderReportPdf(content, { rasterPng: await loadRasterPng(orgId, content) });
     const key = orgKey(orgId, "reports", reportId, "report.pdf");
     const { size } = await storage().put(key, pdf, "application/pdf");

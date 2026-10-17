@@ -27,7 +27,7 @@ export const reportParamsSchema = z
   .strictObject({
     from: dateParam.optional(),
     to: dateParam.optional(),
-    /** Set false to skip the optional AI narrative. */
+    /** Set true to request the optional AI narrative; off unless requested. */
     ai_summary: z.boolean().optional(),
   })
   .refine((p) => !p.from || !p.to || Date.parse(p.from) < Date.parse(p.to), { message: "from must be before to", path: ["from"] })

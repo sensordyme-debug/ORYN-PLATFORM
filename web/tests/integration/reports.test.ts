@@ -105,7 +105,7 @@ describe("reports", () => {
         parse: vi.fn(async () => ({ stop_reason: "end_turn" as const, parsed_output: { sentences: [{ text: "Imagery from 3 days ago is available [E2]." }, { text: "Pests are present [E77]." }] } })),
       },
     };
-    const a = await createReport(analyst.access, { type: "change", aoiId: aoi });
+    const a = await createReport(analyst.access, { type: "change", aoiId: aoi, params: { ai_summary: true } });
     await generateReport(org.id, a.id, { summaryClient: ok });
     const [ra] = await rows<{ summary_method: string; content: ReportContent }>`select summary_method, content from reports where id = ${a.id}`;
     expect(ra!.summary_method).toBe("ai:claude-opus-5-5");
@@ -113,9 +113,23 @@ describe("reports", () => {
     expect(ra!.content.summary!.text).not.toContain("Pests");
 
     const failing: SummaryClient = { messages: { parse: async () => Promise.reject(new Error("boom")) } };
-    const b = await createReport(analyst.access, { type: "change", aoiId: aoi });
+    const b = await createReport(analyst.access, { type: "change", aoiId: aoi, params: { ai_summary: true } });
     await generateReport(org.id, b.id, { summaryClient: failing });
     expect(await rows`select summary_method, status from reports where id = ${b.id}`).toEqual([{ summary_method: "template (ai_unavailable: error)", status: "ready" }]);
+  });
+
+  it("never calls the AI model unless the report asks for it (API default is off)", async () => {
+    const { org, aoi, analyst } = await setup();
+    await insertObservation(org.id, aoi, { observedAt: daysAgo(3), mean: 0.5 });
+    const parse = vi.fn(async () => ({ stop_reason: "end_turn" as const, parsed_output: { sentences: [{ text: "x [E2]." }] } }));
+    const client: SummaryClient = { messages: { parse } };
+    for (const params of [{}, { ai_summary: false }]) {
+      const r = await createReport(analyst.access, { type: "change", aoiId: aoi, params });
+      await generateReport(org.id, r.id, { summaryClient: client });
+      const [row] = await rows<{ summary_method: string }>`select summary_method from reports where id = ${r.id}`;
+      expect(row!.summary_method).not.toMatch(/^ai:/);
+    }
+    expect(parse).not.toHaveBeenCalled();
   });
 
   it("enforces permissions, AOI requirement, and tenant isolation", async () => {
