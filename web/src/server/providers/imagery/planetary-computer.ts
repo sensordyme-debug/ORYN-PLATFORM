@@ -21,7 +21,7 @@ import type { ImageryProvider, ProductDescriptor, ProviderDescriptor } from "@/s
 
 export const PLANETARY_COMPUTER_ID = "planetary-computer";
 
-const COPERNICUS_LICENSE_URL = "https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice";
+const COPERNICUS_LICENSE_URL = "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice";
 const CC_BY_4 = "https://creativecommons.org/licenses/by/4.0/";
 
 export const PC_COLLECTIONS = {

@@ -20,9 +20,9 @@
  * publicly used must be offered under the ODbL (share-alike).
  */
 import { bboxToPolygon, geometryArea, type BBox, type Geometry, type Position } from "@/lib/geo";
-import { env } from "@/server/config/env";
+import { env, isProduction } from "@/server/config/env";
 import { httpJson, ProviderError, type FetchLike } from "@/server/providers/http";
-import type { ProviderDescriptor, ReferenceFeature } from "@/server/providers/types";
+import type { ProviderAvailability, ProviderDescriptor, ReferenceFeature } from "@/server/providers/types";
 
 export const OVERPASS_ID = "overpass";
 export const OVERPASS_MAX_BBOX_KM2 = 400;
@@ -126,6 +126,23 @@ type OverpassElement = {
   geometry?: ({ lat?: number; lon?: number } | null)[];
 };
 
+/**
+ * The public instance (overpass-api.de) is for one-off and light use; its
+ * operators name "an app relying on the public instances as backend" as a
+ * problem, and commercial products are pointed to their own or a paid
+ * instance. In production ORYN therefore requires OVERPASS_URL.
+ */
+export function overpassAvailability(cfg: { production?: boolean; configured?: boolean } = {}): ProviderAvailability {
+  const production = cfg.production ?? isProduction();
+  const configured = cfg.configured ?? env.overpassUrlConfigured();
+  if (!production || configured) return { state: "available" };
+  return {
+    state: "disabled",
+    reason:
+      "The public Overpass instance may not back a production application under its usage policy. Set OVERPASS_URL to your own or a paid Overpass instance.",
+  };
+}
+
 export async function fetchOsmFeatures(
   bbox: BBox,
   categories: OsmCategory[],
@@ -133,6 +150,8 @@ export async function fetchOsmFeatures(
   opts: { fetchImpl?: FetchLike; endpoint?: string; now?: () => Date } = {},
 ): Promise<OsmFeatureResult> {
   const query = buildOverpassQuery(bbox, categories);
+  const availability = opts.endpoint ? ({ state: "available" } as const) : overpassAvailability();
+  if (availability.state !== "available") throw new ProviderError(OVERPASS_ID, "unconfigured", availability.reason, { retryable: false });
   const endpoint = opts.endpoint ?? env.overpassUrl();
   const res = await httpJson<{ elements?: OverpassElement[]; remark?: string; osm3s?: { timestamp_osm_base?: string } }>(endpoint, {
     providerId: OVERPASS_ID,

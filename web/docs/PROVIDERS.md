@@ -35,7 +35,7 @@ Production gates: email, GDELT, NASA HLS reads, and AI summaries stay off in pro
 - **Kind:** imagery; **update cadence:** Continuous as ESA publishes Level-2A products (a 2026-10-08 scene was catalogued about 8 hours after acquisition).; **delivery:** polled
 - **Products:** `earth-search:sentinel-2-l2a` (feeds: ndvi, ndwi)
 - **Credentials:** optional: EARTH_SEARCH_STAC_URL
-- **Licence:** Copernicus Sentinel data are provided free, full and open under the Copernicus Sentinel data terms: use, reproduction, modification and redistribution, including commercial, are permitted with attribution. (https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice)
+- **Licence:** Copernicus Sentinel data are provided free, full and open under the Copernicus Sentinel data terms: use, reproduction, modification and redistribution, including commercial, are permitted with attribution. (https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice)
 - **Redistribution:** Imagery and derived products may be redistributed with the attribution “Contains modified Copernicus Sentinel data [year]”. **Commercial use:** allowed.
 - **Rate limits:** See provider terms; ORYN retries 429/5xx with backoff.
 

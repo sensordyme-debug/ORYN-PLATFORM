@@ -22,7 +22,7 @@ import type { ImageryProvider, ProductDescriptor, ProviderDescriptor } from "@/s
 
 export const EARTH_SEARCH_ID = "earth-search";
 
-const COPERNICUS_LICENSE_URL = "https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice";
+const COPERNICUS_LICENSE_URL = "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice";
 
 export const EARTH_SEARCH_S2_L2A: StacCollectionConfig = {
   collection: "sentinel-2-l2a",

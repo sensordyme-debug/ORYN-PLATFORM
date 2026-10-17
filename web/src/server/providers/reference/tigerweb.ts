@@ -68,7 +68,7 @@ export const TIGERWEB_DESCRIPTOR: ProviderDescriptor = {
     url: "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
     redistribution: "Unrestricted.",
     commercialUse: "allowed",
-    attribution: "Source: U.S. Census Bureau, TIGERweb",
+    attribution: "Source: U.S. Census Bureau, TIGERweb. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau.",
   },
   credentials: { required: false, envVars: [] },
   updateCadence: "Annual vintages; the layer's stated vintage is recorded with every boundary.",

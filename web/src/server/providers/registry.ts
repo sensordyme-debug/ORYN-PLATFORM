@@ -27,7 +27,7 @@ import {
   PLANETARY_COMPUTER_ID,
 } from "@/server/providers/imagery/planetary-computer";
 import { gdeltAvailability, GDELT_DESCRIPTOR, GDELT_ID, GDELT_MIN_INTERVAL_MS, isRateLimitMessage, parseArtlist } from "@/server/providers/news/gdelt";
-import { OVERPASS_DESCRIPTOR, OVERPASS_ID } from "@/server/providers/reference/overpass";
+import { OVERPASS_DESCRIPTOR, OVERPASS_ID, overpassAvailability } from "@/server/providers/reference/overpass";
 import { TIGERWEB_BASE, TIGERWEB_DESCRIPTOR, TIGERWEB_ID, parseVintage } from "@/server/providers/reference/tigerweb";
 import type { HealthResult, ImageryProvider, ProductDescriptor, ProviderAvailability, ProviderDescriptor } from "@/server/providers/types";
 import { nwsAvailability, NWS_DESCRIPTOR, NWS_ID } from "@/server/providers/weather/nws";
@@ -144,6 +144,8 @@ export function providerAvailability(id: string): ProviderAvailability {
       return openMeteoAvailability();
     case GDELT_ID:
       return gdeltAvailability();
+    case OVERPASS_ID:
+      return overpassAvailability();
     default:
       return getProviderDescriptor(id) ? { state: "available" } : { state: "disabled", reason: `Unknown provider "${id}".` };
   }

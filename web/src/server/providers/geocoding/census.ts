@@ -38,7 +38,7 @@ export const CENSUS_GEOCODER_DESCRIPTOR: ProviderDescriptor = {
     url: "https://www.census.gov/data/developers/about/terms-of-service.html",
     redistribution: "Unrestricted.",
     commercialUse: "allowed",
-    attribution: "Source: U.S. Census Bureau Geocoder",
+    attribution: "Source: U.S. Census Bureau Geocoder. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau.",
   },
   credentials: { required: false, envVars: [] },
   updateCadence: "Benchmark address ranges are refreshed periodically by the Census Bureau.",

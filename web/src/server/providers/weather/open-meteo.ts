@@ -10,8 +10,8 @@
  *
  * Licensing gate: the free API is licensed for non-commercial use only.
  * Requests are made only when OPEN_METEO_API_KEY is set (customer-* hosts,
- * &apikey=) or OPEN_METEO_ALLOW_NONCOMMERCIAL is true (the default outside
- * production); otherwise availability() is "disabled" with the reason and
+ * &apikey=) or OPEN_METEO_ALLOW_NONCOMMERCIAL is true (off by default in
+ * every environment); otherwise availability() is "disabled" with the reason and
  * calls throw ProviderError "unconfigured". Data are CC BY 4.0: attribution
  * "Weather data by Open-Meteo.com" is required.
  *

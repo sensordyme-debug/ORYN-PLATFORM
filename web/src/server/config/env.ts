@@ -137,8 +137,14 @@ export const env = {
   /** NWS requires a User-Agent identifying the application and a contact. */
   nwsUserAgent: () => read("NWS_USER_AGENT"),
   openMeteoApiKey: () => read("OPEN_METEO_API_KEY"),
-  /** Open-Meteo's free API is licensed for non-commercial use only. */
-  openMeteoAllowNonCommercial: () => bool("OPEN_METEO_ALLOW_NONCOMMERCIAL", !isProduction()),
+  /**
+   * Open-Meteo's free API is licensed for non-commercial use only. ORYN is a
+   * commercial product, so it is never used unless explicitly allowed (for a
+   * non-commercial evaluation) or replaced by a paid key.
+   */
+  openMeteoAllowNonCommercial: () => bool("OPEN_METEO_ALLOW_NONCOMMERCIAL", false),
+  /** The public Overpass instance may not back a production application; set OVERPASS_URL to your own. */
+  overpassUrlConfigured: () => Boolean(read("OVERPASS_URL")),
   gdeltEnabled: () => bool("GDELT_ENABLED", true),
   overpassUrl: () => read("OVERPASS_URL") ?? "https://overpass-api.de/api/interpreter",
   contactEmailForApis: () => read("ORYN_API_CONTACT_EMAIL"),

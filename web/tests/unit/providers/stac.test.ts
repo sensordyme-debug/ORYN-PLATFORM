@@ -87,7 +87,7 @@ describe("Earth Search Sentinel-2 L2A mapping", () => {
 
   it("records licence, licence URL, and year-stamped attribution", () => {
     expect(a.license).toBe("Copernicus Sentinel data terms (free, full and open)");
-    expect(a.licenseUrl).toBe("https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice");
+    expect(a.licenseUrl).toBe("https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice");
     expect(a.attribution).toBe("Contains modified Copernicus Sentinel data 2026");
   });
 
