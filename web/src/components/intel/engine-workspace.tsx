@@ -25,6 +25,7 @@ import { formatDateTime, relativeTime } from "@/lib/format";
 import { parseCoordinates } from "@/lib/geo";
 import {
   ENGINE_DOCUMENT,
+  NATURE_LABEL,
   zoomForHeight,
   type EngineBridge,
   type EngineFeedState,
@@ -81,11 +82,11 @@ const GROUPED = new Set(ENGINE_GROUPS.flatMap((g) => g.ids));
  */
 type EngineMode = { id: string; label: string; description: string; engine: string[]; aois: boolean; detections: boolean };
 const MODES: EngineMode[] = [
-  { id: "global", label: "Global intelligence", description: "Public hazard events worldwide and the satellites over them.", engine: ["earthquakes", "fire-perimeters", "weather-cyclones", "satellites"], aois: false, detections: false },
-  { id: "agriculture", label: "Agriculture and environment", description: "Your fields and findings with wildfire, active-fire, and satellite cloud context.", engine: ["fire-perimeters", "local-firms", "weather-satellite"], aois: true, detections: true },
-  { id: "municipal", label: "Municipal and infrastructure", description: "Your areas and findings with seismic and wildfire context and mapped infrastructure.", engine: ["earthquakes", "fire-perimeters", "local-dams", "local-datacenters"], aois: true, detections: true },
-  { id: "traffic", label: "Traffic and cameras", description: "Public camera locations and frames where operators publish them, transit, and road traffic simulated on real roads.", engine: ["cctv", "transit", "traffic"], aois: false, detections: false },
-  { id: "incident", label: "Incident investigation", description: "Your areas and findings with public hazard events and replayable weather radar.", engine: ["earthquakes", "fire-perimeters", "local-firms", "weather-radar"], aois: true, detections: true },
+  { id: "global", label: "Global intelligence", description: "Public hazard events worldwide: earthquakes, active fires, and tropical cyclone advisories.", engine: ["earthquakes", "local-firms", "weather-cyclones"], aois: false, detections: false },
+  { id: "agriculture", label: "Agriculture and environment", description: "Your fields and findings with active-fire detections and satellite cloud context.", engine: ["local-firms", "weather-satellite"], aois: true, detections: true },
+  { id: "municipal", label: "Municipal and infrastructure", description: "Your areas and findings with seismic context and mapped infrastructure.", engine: ["earthquakes", "local-dams", "local-datacenters"], aois: true, detections: true },
+  { id: "traffic", label: "Cameras and air traffic", description: "Road cameras from operators whose open licences cover their images (Finland, Norway, British Columbia, Calgary), and aircraft reported to adsb.lol.", engine: ["cctv", "flights"], aois: false, detections: false },
+  { id: "incident", label: "Incident investigation", description: "Your areas and findings with public hazard events and replayable weather radar.", engine: ["earthquakes", "local-firms", "weather-radar"], aois: true, detections: true },
 ];
 const MODE_MANAGED = new Set(MODES.flatMap((m) => m.engine));
 
@@ -330,7 +331,11 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
     }
   }
 
-  const byId = new Map(layers.filter((l) => l.showInTogglePanel).map((l) => [l.id, l]));
+  // Only layers whose licences permit commercial display are offered; the
+  // engine refuses the others (src/ui/host/hostLicences.js).
+  const offered = (l: EngineLayer) => l.licence === null || l.licence.offered;
+  const byId = new Map(layers.filter((l) => l.showInTogglePanel && offered(l)).map((l) => [l.id, l]));
+  const withheldLayers = layers.filter((l) => l.showInTogglePanel && !offered(l));
   const groups = [
     ...ENGINE_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((id) => byId.get(id)).filter((l): l is EngineLayer => Boolean(l)) })),
     { label: "Other", items: [...byId.values()].filter((l) => !GROUPED.has(l.id) && !l.id.startsWith("bhote-koshi")) },
@@ -423,8 +428,21 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
               ))}
             </fieldset>
           ))}
+          {withheldLayers.length ? (
+            <details className="text-[0.6875rem] text-bone-50/50">
+              <summary className="cursor-pointer text-bone-50/60">{withheldLayers.length} engine layers not offered in ORYN</summary>
+              <p className="mt-1 text-bone-50/45">Withheld because their data licences do not permit commercial use, their terms could not be verified, or the data is simulated or unvalidated.</p>
+              <ul className="mt-1 flex flex-col gap-1">
+                {withheldLayers.map((l) => (
+                  <li key={l.id}>
+                    <span className="text-bone-50/70">{l.name}</span> — {l.licence?.reason}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
           <p className="text-[0.6875rem] text-bone-50/40">
-            Geospatial engine: God&apos;s Eye View (MIT). Public feeds refresh periodically; each layer shows its source and when it was last retrieved. Layers marked Unavailable need a provider key or are not reachable from this deployment.
+            Geospatial engine: God&apos;s Eye View (MIT). Basemap: NASA GIBS Blue Marble and USDA NAIP imagery via USGS The National Map. Public feeds refresh periodically; each layer shows its source, licence, and when it was last retrieved. Layers marked Unavailable need a provider key or are not reachable from this deployment.
           </p>
         </div>
       </aside>
@@ -472,7 +490,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
             ) : sel.kind === "detection" && selDetection ? (
               <DetectionCard slug={slug} timeZone={timeZone} d={selDetection} onClose={() => setSel(null)} />
             ) : sel.kind === "engine" ? (
-              <EngineCard r={sel.ref} timeZone={timeZone} bridge={bridge} onClose={() => setSel(null)} />
+              <EngineCard r={sel.ref} layer={layers.find((l) => l.id === sel.ref.layerId) ?? null} timeZone={timeZone} bridge={bridge} onClose={() => setSel(null)} />
             ) : (
               <p className="p-4 text-[0.75rem] text-bone-50/50">This item is no longer in the loaded data. <button className="underline" onClick={() => setSel(null)}>Close</button></p>
             )}
@@ -496,6 +514,11 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
             {tone ? <Badge tone={tone}>{STATE_LABEL[l.state]}</Badge> : blocked ? <Badge tone="muted">Unavailable</Badge> : null}
           </span>
           {l.source ? <span className="block text-[0.6875rem] text-bone-50/45">{l.source}</span> : null}
+          {l.licence?.offered && l.licence.nature ? (
+            <span className="block text-[0.6875rem] text-bone-50/40" title={l.licence.sources.map((s) => `${s.name}: ${s.licence}. ${s.attribution}`).join("\n")}>
+              {NATURE_LABEL[l.licence.nature]} · {l.licence.sources.map((s) => s.licence).join("; ")}
+            </span>
+          ) : null}
           {l.enabled && (l.count > 0 || l.lastUpdate) ? (
             <span className="block text-[0.6875rem] text-bone-50/55">
               {l.count} shown{l.lastUpdate ? ` · retrieved ${relativeTime(l.lastUpdate)}` : ""}
@@ -554,8 +577,9 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
 }
 
 /** A globe record from a public feed: what it is, where it came from, and when. */
-function EngineCard({ r, timeZone, bridge, onClose }: { r: EngineRef; timeZone: string; bridge: EngineBridge | null; onClose: () => void }) {
+function EngineCard({ r, layer, timeZone, bridge, onClose }: { r: EngineRef; layer: EngineLayer | null; timeZone: string; bridge: EngineBridge | null; onClose: () => void }) {
   const fields = Object.entries(r.fields);
+  const licence = layer?.licence ?? null;
   return (
     <div className="flex flex-col gap-3 p-4 text-[0.8125rem]" aria-label="Globe record details">
       <div className="flex items-start justify-between gap-2">
@@ -566,8 +590,11 @@ function EngineCard({ r, timeZone, bridge, onClose }: { r: EngineRef; timeZone: 
         <button aria-label="Close" onClick={onClose} className="p-1 text-bone-50/50 hover:text-bone-50"><X className="size-4" /></button>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <Badge tone="info">Provider-reported</Badge>
-        <Badge tone="muted">Public feed</Badge>
+        {licence?.nature ? (
+          <Badge tone={licence.nature === "observed" ? "info" : "watch"}>{NATURE_LABEL[licence.nature]}</Badge>
+        ) : (
+          <Badge tone="muted">Public feed</Badge>
+        )}
       </div>
       <dl>
         <Row k="Coordinates" v={r.position ? `${r.position.lat.toFixed(5)}, ${r.position.lon.toFixed(5)}` : null} />
@@ -578,7 +605,11 @@ function EngineCard({ r, timeZone, bridge, onClose }: { r: EngineRef; timeZone: 
           <Row key={k} k={fieldLabel(k)} v={String(v)} />
         ))}
       </dl>
+      {licence?.note ? <p className="text-[0.75rem] text-bone-50/60">{licence.note}</p> : null}
       <p className="text-[0.75rem] text-bone-50/50">Values are shown as the provider reported them. Public feeds refresh periodically and do not cover every location.</p>
+      {licence?.sources.length ? (
+        <p className="text-[0.6875rem] text-bone-50/45">{licence.sources.map((s) => `${s.attribution} (${s.licence})`).join(" · ")}</p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {r.position && bridge ? (
           <Button size="sm" onClick={() => r.position && bridge.flyTo({ lat: r.position.lat, lon: r.position.lon, range: r.kind === "satellite" ? 4_000_000 : 20_000 })}>

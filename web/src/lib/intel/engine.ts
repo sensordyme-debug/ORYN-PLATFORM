@@ -16,41 +16,20 @@ export const ENGINE_BASE_PATH = "/engine/";
 export const ENGINE_DOCUMENT = `${ENGINE_BASE_PATH}index.html?host=oryn`;
 
 /**
- * Engine API routes the ORYN origin forwards. Each is one of the engine's
- * public-data proxies (or a keyed feed whose key stays on the engine server).
- * Deliberately absent: `setup` (writes the engine's .env), `openai` and
- * `realtime` (paid voice sessions). None collides with an ORYN route.
+ * Engine API routes the ORYN origin forwards: only the public-data proxies of
+ * layers ORYN offers, whose licences permit commercial display (see
+ * src/ui/host/hostLicences.js and ORYN_LICENCE_REVIEW.md at the repository
+ * root). Not forwarded: `setup` (writes the engine's .env); `openai` and
+ * `realtime` (paid voice); `google`, `tomtom`, `mapillary` (keys, paid
+ * services); `adsbdb` (route data may not be republished); `celestrak`,
+ * `launches`, `fire-perimeters`, `terrain`, `geocode` (terms unpublished
+ * or best-effort only); `gbfs`, `transit`, `radio`, `route`, `vessels`,
+ * `gnss-integrity`, `local-receivers`, `overpass`, `regional-brief`,
+ * `weather-effects` (withheld layers, or non-commercial sources such as
+ * Google News and the free Open-Meteo API). None collides with an ORYN route.
+ * src/proxy.ts repeats this list in its static matcher.
  */
-export const ENGINE_API_PREFIXES = [
-  "adsbdb",
-  "celestrak",
-  "cctv",
-  "cyclones",
-  "fire-perimeters",
-  "firms",
-  "flights",
-  "gbfs",
-  "geocode",
-  "gnss-integrity",
-  "google",
-  "launches",
-  "local-receivers",
-  "map",
-  "mapillary",
-  "military",
-  "military-installations",
-  "overpass",
-  "radio",
-  "regional-brief",
-  "route",
-  "terrain",
-  "tomtom",
-  "transit",
-  "vessels",
-  "weather",
-  "weather-effects",
-  "wind",
-] as const;
+export const ENGINE_API_PREFIXES = ["cctv", "cyclones", "firms", "flights", "military", "military-installations", "weather", "wind"] as const;
 
 export type EngineFeedState = "current" | "fallback" | "loading" | "stale" | "partial" | "unavailable" | "off";
 
@@ -77,6 +56,28 @@ export type EngineLayer = {
   requiresKeyId: string | null;
   showInTogglePanel: boolean;
   controls: EngineRowControls;
+  /** The host licence policy (src/ui/host/hostLicences.js); null outside host mode. */
+  licence: EngineLicence | null;
+};
+
+export type EngineNature = "observed" | "forecast" | "computed" | "estimated" | "reference";
+export type EngineLicenceSource = { name: string; licence: string; attribution: string; terms: string | null };
+export type EngineLicence = {
+  offered: boolean;
+  nature: EngineNature | null;
+  /** Why the layer is withheld (null when offered). */
+  reason: string | null;
+  note: string | null;
+  sources: EngineLicenceSource[];
+};
+
+/** How each kind of engine data is labelled: never call a model or estimate an observation. */
+export const NATURE_LABEL: Record<EngineNature, string> = {
+  observed: "Provider-reported observation",
+  forecast: "Model forecast",
+  computed: "Derived product",
+  estimated: "Observed, with estimated geometry",
+  reference: "Reference map data",
 };
 
 /** Where a statement came from: a data provider, or ORYN's own records. */

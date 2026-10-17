@@ -113,6 +113,6 @@ export const config = {
     },
     // The geospatial engine and its proxies (keep in step with ENGINE_API_PREFIXES).
     "/engine/:path*",
-    "/api/:engine(adsbdb|celestrak|cctv|cyclones|fire-perimeters|firms|flights|gbfs|geocode|gnss-integrity|google|launches|local-receivers|map|mapillary|military|military-installations|overpass|radio|regional-brief|route|terrain|tomtom|transit|vessels|weather|weather-effects|wind)/:path*",
+    "/api/:engine(cctv|cyclones|firms|flights|military|military-installations|weather|wind)/:path*",
   ],
 };
