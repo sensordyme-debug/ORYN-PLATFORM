@@ -12,6 +12,7 @@ import type { Geometry } from "@/lib/geo";
 import { currentModelKeys } from "@/server/analytics/registry";
 import { DELTA_NDVI_STOPS, MASKED_STOP } from "@/server/analytics/render";
 import type { ObservationQuality, RasterRef } from "@/server/analytics/types";
+import { visibleAoiIds } from "@/server/alerts/scope";
 import { recordAudit } from "@/server/audit";
 import type { OrgAccess } from "@/server/authz/access";
 import { aoiVisibleTo, getAoi } from "@/server/aois/service";
@@ -448,11 +449,31 @@ export type NoteTarget = (typeof NOTE_TARGETS)[number];
 
 const NOTE_TABLE: Record<NoteTarget, string> = { aoi: "aois", detection: "detections", alert: "alerts", observation: "observations", report: "reports" };
 
+/**
+ * A note's target must exist in the caller's org AND be visible to the
+ * caller under the same AOI scope as the record's own read path: a member
+ * restricted to some AOIs may not read or write notes on anything else
+ * (404, as for the record itself). Org-wide reports follow findReport: a
+ * restricted member sees only those they created; audit reports need
+ * audit.read.
+ */
 async function assertNoteTarget(tx: Tx, access: OrgAccess, type: NoteTarget, id: string) {
   assertId(id, "Record");
-  const rows = await tx`select 1 from ${tx(NOTE_TABLE[type])} where id = ${id} and org_id = ${access.org.id}`;
-  if (rows.length === 0) throw notFoundError("Record");
+  const [row] =
+    type === "aoi"
+      ? await tx<NoteTargetRow[]>`select id as aoi_id, null::text as created_by, null::text as report_type from aois where id = ${id} and org_id = ${access.org.id}`
+      : type === "report"
+        ? await tx<NoteTargetRow[]>`select aoi_id, created_by, report_type from reports where id = ${id} and org_id = ${access.org.id}`
+        : await tx<NoteTargetRow[]>`select aoi_id, null::text as created_by, null::text as report_type from ${tx(NOTE_TABLE[type])} where id = ${id} and org_id = ${access.org.id}`;
+  if (!row) throw notFoundError("Record");
+  if (row.report_type === "audit" && !access.can("audit.read")) throw notFoundError("Record");
+  const visible = await visibleAoiIds(tx, access);
+  if (!visible) return;
+  const self = access.principal.type === "user" ? access.principal.userId : null;
+  const allowed = row.aoi_id ? visible.includes(row.aoi_id) : type === "report" && self !== null && row.created_by === self;
+  if (!allowed) throw notFoundError("Record");
 }
+type NoteTargetRow = { aoi_id: string | null; created_by: string | null; report_type: string | null };
 
 export async function listNotes(access: OrgAccess, type: NoteTarget, id: string) {
   access.assert("results.read");
