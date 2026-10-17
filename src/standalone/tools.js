@@ -2,9 +2,16 @@ import { createAssetDirectorySource } from '../director/packs/source.js';
 import { createApplicationTools } from '../app/tools.js';
 import { startStandaloneChrome } from './startupChrome.js';
 import { loadToolCatalog } from './toolCatalog.js';
-export function createStandaloneTools(options) {
+export function createStandaloneTools({
+  providerSettings = true,
+  ...options
+} = {}) {
   return createApplicationTools({
-    startChrome: startStandaloneChrome,
+    // A host application owns provider configuration; it turns this off.
+    startChrome: providerSettings
+      ? startStandaloneChrome
+      : (chrome) =>
+          startStandaloneChrome({ ...chrome, initializeSettings: null }),
     sceneDataPacks: {
       sources: {
         assets: createAssetDirectorySource({

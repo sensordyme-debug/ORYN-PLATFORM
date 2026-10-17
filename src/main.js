@@ -15,6 +15,8 @@ const application = createStandaloneApplication({
   allowQaRegistration: import.meta.env.DEV,
   // The host sets its own starting view through the bridge.
   startupFlight: !host,
+  // Provider keys are configured on the engine server, not from the host page.
+  providerSettings: !host,
 });
 
 if (host) installHostBridge({ application, host });

@@ -543,6 +543,19 @@ export function installHostBridge({ application, host, windowRef = window }) {
             .join(' ')
             .toLowerCase();
           if (!haystack.includes(needle)) continue;
+          // A dated public event carries the same label, observation time,
+          // source link and measurements the event list shows.
+          const event = EVENT_LAYERS[layerId]
+            ? eventRef(layerId, record, {
+                source: feeds.get(layerId)?.source,
+                retrievedAt: feeds.get(layerId)?.lastUpdate,
+              })
+            : null;
+          if (event) {
+            matches.push(event);
+            if (matches.length >= limit) return matches;
+            continue;
+          }
           const lat = finite(record.lat ?? record.latitude);
           const lon = finite(record.lon ?? record.longitude);
           matches.push({

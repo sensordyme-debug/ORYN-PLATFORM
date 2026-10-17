@@ -1,3 +1,10 @@
+> **ORYN-PLATFORM.** This repository holds two parts: the ORYN web application
+> in [`web/`](web/) (imported from ORYN-WEBSITE: public site, sign-in,
+> platform, API and database migrations) and, at the root, the God's Eye View
+> geospatial engine that powers its Intelligence globe. Setup, architecture
+> and status are in [ORYN_INTEGRATION_PLAN.md](ORYN_INTEGRATION_PLAN.md). The
+> upstream engine documentation follows.
+
 <div align="center">
 
 # 🌐 God's Eye View

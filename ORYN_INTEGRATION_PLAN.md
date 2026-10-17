@@ -76,51 +76,79 @@ browser ── ORYN web app (web/, Next.js) ────────────
 | `build/vite.js` | `GEV_BASE_PATH` support (validated), Cesium static-copy fix for sub-paths, watcher ignores `dist-engine/` and `web/` |
 | `build/embed-framing.js` | `?host=oryn` documents framable by configured ancestors, also under a base path |
 | `server/standalone/vite.config.js` | passes `GEV_BASE_PATH` |
-| `src/main.js`, `src/standalone/application.js`, `src/app/controls.js` | host mode wiring; the startup Austin flight is skipped when the host sets the view |
+| `src/main.js`, `src/standalone/application.js`, `src/standalone/tools.js`, `src/app/controls.js` | host mode wiring; in host mode the startup Austin flight and the engine's provider-settings panel are skipped (the host sets the view; keys live on the engine server) |
 | `src/firstRunExperience.js` | no launcher in host mode |
 | `src/logoGaze.js`, `src/voice/control.js` | icon paths resolve against the base path |
 | `src/ui/host/*`, `src/ui/styles/oryn-host.css`, `style.css` | host mode, bridge, ORYN theme |
 | `scripts/oryn-engine.mjs`, `package.json` (`oryn:engine`) | build under `/engine/` and serve on loopback |
 
-## Status
+## Import (2026-10-17)
 
-| Item | Status |
+- Source: ORYN-WEBSITE `main` @ `e3abf61`, committed files only, exported
+  with `core.autocrlf=false` (this repo checks text out as LF).
+- Rollback point: local tag `pre-web-import-2026-10-17` (commit `954f7c33`).
+- Imported: 518 files into `web/` (application source, public assets,
+  migrations, scripts, tests, docs, `.env.example`, local `docker-compose.yml`).
+- Excluded: `deploy/` (Railway and rehearsal, including `rehearsal.env`),
+  `Dockerfile`, `Dockerfile.web`, `Dockerfile.worker`, `.dockerignore`,
+  `db/production/`, `docs/deployments/`, `docs/DEPLOYMENT.md`, and
+  `tests/unit/deployment-config.test.ts` (it only checks those excluded
+  deployment files; it still lives and passes in ORYN-WEBSITE).
+- Secrets scan of the import: no keys, tokens or private keys; the only
+  credentials are test fixtures (`u:p@h`, `db.internal`) and the documented
+  `*_dev_only` local passwords in `docker-compose.yml`.
+- Changes on top of the import (9 files under `web/`):
+  new `src/lib/intel/engine.ts`, `src/server/intel/engine-gate.ts`,
+  `src/components/intel/engine-workspace.tsx`, `src/components/intel/engine-loader.tsx`;
+  modified `src/proxy.ts`, `next.config.ts`, `src/app/(platform)/app/[org]/intel/page.tsx`,
+  `tests/e2e/intel-globe.spec.ts` (first test rewritten for the engine, membership
+  test kept, engine-gate test added), `tests/e2e/global-setup.ts` (runs tsx through
+  Node so the suite starts on Windows).
+- The website's original globe components (`intel-workspace.tsx`,
+  `globe-scene.ts`, cards, time bar) remain in `web/`; the cards are reused,
+  the rest is unused by the intel page now.
+
+## Verification (run from ORYN-PLATFORM)
+
+| Check | Result |
 | --- | --- |
-| Engine host mode, bridge, base path, framing | done; unit tests and browser checks pass |
-| Web integration (EngineWorkspace, proxy gate, rewrites, intel page) | written and verified end to end in a scratch clone of the website: real sign-in, 15/15 browser checks, website unit tests, typecheck, lint |
-| Import of the website application into `web/` | **blocked**: the Claude Code auto-mode safety check refused copying the website's source into this repository. Needs your approval (see below). |
-| Visual comparison of every page from `web/` | pending the import |
+| `web`: `npm test` (unit) | 326 passed, 9 skipped (339 before minus the 13 excluded deployment-layout tests) |
+| `web`: `npm run test:integration` (tenant isolation against `oryn_test`) | 100 passed, 4 skipped |
+| `web`: `npx playwright test` (all e2e, real server, real database) | 24 passed |
+| `web`: `npm run typecheck`, `npm run lint`, `npm run build` | pass |
+| engine: `npm test` | 7,695 passed, 0 failed, 10 skipped (allocation benchmarks need Node 24) |
+| engine: `format:check`, `check:boundaries`, `i18n`, `layer-token:check` | pass |
+| Browser check of the intel page (sign-in, bridge, layers, modes, ORYN area card, route change, phone width, sign-out) | 15/15 |
+| API checks (401 signed out, member reads, other org 404, viewer cannot write, engine gate, sign-out revokes) | 15/15 |
+| Row-level security: `oryn_app` without tenant context | sees 0 of 4 areas; no BYPASSRLS |
+| Visual comparison with the original at 1440×900 and 390×844 | 12 public pages and 18 platform pages pixel-identical; home and Aerial analysis differ only in background video frames; Intelligence globe differs by design |
 
-### The blocked step
+Live feeds observed through the ORYN app: USGS earthquakes, NIFC wildfire
+perimeters, NOAA NHC cyclones, NOAA nowCOAST radar, ECCC air quality,
+CelesTrak satellites, Launch Library launches, OpenSky / adsb.lol aircraft
+(labelled Fallback when served by adsb.lol), adsb.lol military aircraft and
+GNSS integrity, public CCTV poses. Unavailable without keys: AIS vessels
+(`AISSTREAM_API_KEY`), NASA FIRMS (`FIRMS_MAP_KEY`).
 
-Importing the website is one command (committed files only, deployment
-infrastructure excluded):
-
-```
-git -C C:\Users\ashur\Projects\ORYN-WEBSITE archive --format=tar HEAD -- . ^
-  ":(exclude)deploy" ":(exclude)Dockerfile" ":(exclude)Dockerfile.web" ^
-  ":(exclude)Dockerfile.worker" ":(exclude)docs/deployments" ^
-  ":(exclude)docs/DEPLOYMENT.md" ":(exclude).dockerignore" | tar -x -C web
-```
-
-followed by applying `..\devtools\oryn-web-integration\oryn-web-integration.patch`
-(the verified web-side changes) inside `web/`.
-
-## Running it (after the import)
+## Running it locally
 
 ```
-# 1. database (once per boot)
+# 1. database (once per boot; portable PostgreSQL outside the repo)
 ..\devtools\pgsql\bin\pg_ctl.exe -D ..\devtools\pgdata -l ..\devtools\postgres.log start
-# 2. engine service
+# 2. engine service (builds under /engine/ the first time; --build to rebuild)
 npm run oryn:engine
-# 3. ORYN web app
-cd web && npm ci && npm run dev        # http://localhost:3000
+# 3. ORYN web app, in a second terminal
+cd web
+npm ci            # first time only
+npm run dev       # http://localhost:3000
 ```
 
-`web/.env.local` needs `DATABASE_URL`, `DATABASE_OWNER_URL`,
-`BETTER_AUTH_SECRET` (32+ random characters) and `BETTER_AUTH_URL`; the local
-values follow `web/.env.example`. `ORYN_ENGINE_URL` overrides the engine
-address (default `http://127.0.0.1:5180`).
+`web/.env.local` (not committed) holds `DATABASE_URL`, `DATABASE_OWNER_URL`,
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `ORYN_ENGINE_URL` for the local
+cluster; see `web/.env.example`. The local database was migrated with the
+website's own migrations and seeded with its synthetic `Sample Farms`
+organization (`npm run db:seed -- --sample-farm`); `npm run test:e2e` adds
+its synthetic `e2e-*` organizations.
 
 ## Known gaps and risks
 
@@ -137,3 +165,8 @@ address (default `http://127.0.0.1:5180`).
   review) the engine does not implement. It links to the globe and back.
 - Engine layers that need keys (AIS, NASA FIRMS, TomTom, Google 3D) show as
   Unavailable until keys are set on the engine server.
+- Turning on Space Missions (rocket launches) activates the engine's own
+  focus mode, which isolates the globe to launches and satellites and switches
+  other layers off; the ORYN panel reflects it but does not yet explain it.
+- The engine's Google 3D token probe returns 404 when no Google key is
+  configured; the engine then uses its keyless globe, as upstream.
