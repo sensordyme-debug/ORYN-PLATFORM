@@ -1,0 +1,107 @@
+{
+ "displayFieldName": "BASENAME",
+ "fieldAliases": {
+  "NAME": "NAME",
+  "BASENAME": "BASENAME",
+  "GEOID": "GEOID",
+  "STATE": "STATE",
+  "AREALAND": "AREALAND",
+  "AREAWATER": "AREAWATER",
+  "LSADC": "LSADC",
+  "FUNCSTAT": "FUNCSTAT",
+  "CENTLAT": "CENTLAT",
+  "CENTLON": "CENTLON",
+  "INTPTLAT": "INTPTLAT",
+  "INTPTLON": "INTPTLON"
+ },
+ "fields": [
+  {
+   "name": "NAME",
+   "type": "esriFieldTypeString",
+   "alias": "NAME",
+   "length": 100
+  },
+  {
+   "name": "BASENAME",
+   "type": "esriFieldTypeString",
+   "alias": "BASENAME",
+   "length": 100
+  },
+  {
+   "name": "GEOID",
+   "type": "esriFieldTypeString",
+   "alias": "GEOID",
+   "length": 7
+  },
+  {
+   "name": "STATE",
+   "type": "esriFieldTypeString",
+   "alias": "STATE",
+   "length": 2
+  },
+  {
+   "name": "AREALAND",
+   "type": "esriFieldTypeBigInteger",
+   "alias": "AREALAND"
+  },
+  {
+   "name": "AREAWATER",
+   "type": "esriFieldTypeBigInteger",
+   "alias": "AREAWATER"
+  },
+  {
+   "name": "LSADC",
+   "type": "esriFieldTypeString",
+   "alias": "LSADC",
+   "length": 2
+  },
+  {
+   "name": "FUNCSTAT",
+   "type": "esriFieldTypeString",
+   "alias": "FUNCSTAT",
+   "length": 1
+  },
+  {
+   "name": "CENTLAT",
+   "type": "esriFieldTypeString",
+   "alias": "CENTLAT",
+   "length": 11
+  },
+  {
+   "name": "CENTLON",
+   "type": "esriFieldTypeString",
+   "alias": "CENTLON",
+   "length": 12
+  },
+  {
+   "name": "INTPTLAT",
+   "type": "esriFieldTypeString",
+   "alias": "INTPTLAT",
+   "length": 11
+  },
+  {
+   "name": "INTPTLON",
+   "type": "esriFieldTypeString",
+   "alias": "INTPTLON",
+   "length": 12
+  }
+ ],
+ "features": [
+  {
+   "attributes": {
+    "NAME": "Tarboro town",
+    "BASENAME": "Tarboro",
+    "GEOID": "3766700",
+    "STATE": "37",
+    "AREALAND": 29669088,
+    "AREAWATER": 95092,
+    "LSADC": "43",
+    "FUNCSTAT": "A",
+    "CENTLAT": "+35.9045614",
+    "CENTLON": "-077.5560057",
+    "INTPTLAT": "+35.9042418",
+    "INTPTLON": "-077.5555414"
+   }
+  }
+ ]
+}

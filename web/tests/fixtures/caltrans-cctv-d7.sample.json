@@ -1,0 +1,109 @@
+{
+ "data": [
+  {
+   "cctv": {
+    "index": "1",
+    "recordTimestamp": {
+     "recordDate": "2024-05-07",
+     "recordTime": "16:27:07",
+     "recordEpoch": "1715124427"
+    },
+    "location": {
+     "district": "7",
+     "locationName": "I-110 : (196) Avenue 26 Off Ramp",
+     "nearbyPlace": "Cypress Park",
+     "longitude": "-118.2215",
+     "latitude": "34.0837",
+     "elevation": "95",
+     "direction": "South",
+     "county": "Alameda",
+     "route": "I-110",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "26.01",
+     "alignment": "",
+     "milepost": "25.892"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D7/CCTV-196.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "2",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i110196avenue26offramp/i110196avenue26offramp.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "2",
+    "recordTimestamp": {
+     "recordDate": "2025-10-17",
+     "recordTime": "13:13:05",
+     "recordEpoch": "1760731985"
+    },
+    "location": {
+     "district": "7",
+     "locationName": "I-5 : (2) Slauson Ave",
+     "nearbyPlace": "Los Angeles",
+     "longitude": "-118.12791",
+     "latitude": "33.97857",
+     "elevation": "167",
+     "direction": "South",
+     "county": "Los Angeles",
+     "route": "I-5",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "10.057",
+     "alignment": "L",
+     "milepost": "126.417"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D7/CCTV-2.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "2",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i52slausonave/i52slausonave.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "7",
+    "recordTimestamp": {
+     "recordDate": "2026-09-04",
+     "recordTime": "09:35:59",
+     "recordEpoch": "1788539759"
+    },
+    "location": {
+     "district": "7",
+     "locationName": "I-5 : (7) Triggs St",
+     "nearbyPlace": "Los Angeles",
+     "longitude": "-118.16267",
+     "latitude": "34.01224",
+     "elevation": "157",
+     "direction": "North",
+     "county": "Los Angeles",
+     "route": "I-5",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "13.132",
+     "alignment": "R",
+     "milepost": "129.555"
+    },
+    "inService": "false",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D7/CCTV-007.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "2",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i57triggsst/i57triggsst.jpg"
+     }
+    }
+   }
+  }
+ ]
+}

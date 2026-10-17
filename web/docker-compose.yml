@@ -1,0 +1,94 @@
+# Local development services for the ORYN platform.
+#
+#   docker compose up -d db                      # PostgreSQL 17 + PostGIS 3.5
+#   docker compose --profile s3 up -d s3         # S3-compatible storage (SeaweedFS) for
+#                                                # tests/integration/storage-s3.test.ts
+#   docker compose --profile rehearsal up --build   # production images (Dockerfile.web,
+#                                                # Dockerfile.worker) against local db + s3;
+#                                                # see docs/DEPLOYMENT.md → Local rehearsal
+#
+# The image is the multi-architecture build of postgis/postgis (the official
+# image publishes amd64 only). Credentials below are for local development
+# only — never reuse them in a deployed environment.
+services:
+  db:
+    image: imresamu/postgis:17-3.5-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oryn
+      POSTGRES_USER: oryn_owner
+      POSTGRES_PASSWORD: oryn_owner_dev_only
+      # Password for the least-privilege application login (see db/init).
+      ORYN_APP_PASSWORD: oryn_app_dev_only
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - oryn-db:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oryn_owner -d oryn"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # S3-compatible object storage for tests and rehearsals. SeaweedFS enforces
+  # SigV4 signatures and refuses anonymous access (identities in the config).
+  # Keys in deploy/rehearsal/seaweedfs-s3.json are local-only.
+  s3:
+    profiles: ["s3", "rehearsal"]
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d # 4.48
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -volume.max=0 -master.volumeSizeLimitMB=128
+    environment:
+      # Enables SSE-S3 (the driver's default x-amz-server-side-encryption: AES256).
+      # A throwaway key for local tests only; it protects nothing real.
+      WEED_S3_SSE_KEK: "14c4ec5066e6a79ed820d82b5831ab08c775d052e5ab7073263bb4481b25ce51" # hex
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - ./deploy/rehearsal/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+      - oryn-s3:/data
+
+  # ── Production images, rehearsed locally (NODE_ENV=production) ──────────
+  # Set ORYN_REHEARSAL_AUTH_SECRET in the shell (openssl rand -base64 48); without
+  # it the services refuse to start (preflight: auth_secret_missing).
+  migrate:
+    profiles: ["rehearsal"]
+    image: oryn-worker:rehearsal
+    build: { context: ., dockerfile: Dockerfile.worker, args: { NEXT_PUBLIC_PLATFORM_ENABLED: "true", ORYN_APP_VERSION: rehearsal } }
+    command: ["node", "dist/migrate.mjs"]
+    env_file: deploy/rehearsal/rehearsal.env
+    environment:
+      ORYN_SERVICE: migrate
+      DATABASE_OWNER_URL: postgres://oryn_owner:oryn_owner_dev_only@db:5432/oryn_rehearsal
+    depends_on:
+      db: { condition: service_healthy }
+
+  web:
+    profiles: ["rehearsal"]
+    image: oryn-web:rehearsal
+    build: { context: ., dockerfile: Dockerfile.web, args: { NEXT_PUBLIC_PLATFORM_ENABLED: "true", ORYN_APP_VERSION: rehearsal } }
+    env_file: deploy/rehearsal/rehearsal.env
+    environment:
+      BETTER_AUTH_SECRET: ${ORYN_REHEARSAL_AUTH_SECRET:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      s3: { condition: service_started }
+
+  worker:
+    profiles: ["rehearsal"]
+    image: oryn-worker:rehearsal
+    build: { context: ., dockerfile: Dockerfile.worker, args: { NEXT_PUBLIC_PLATFORM_ENABLED: "true", ORYN_APP_VERSION: rehearsal } }
+    env_file: deploy/rehearsal/rehearsal.env
+    environment:
+      BETTER_AUTH_SECRET: ${ORYN_REHEARSAL_AUTH_SECRET:-}
+    ports:
+      - "127.0.0.1:18081:8081"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      s3: { condition: service_started }
+
+volumes:
+  oryn-db:
+  oryn-s3:

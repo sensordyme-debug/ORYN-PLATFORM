@@ -1,0 +1,42 @@
+{
+ "result": {
+  "input": {
+   "address": {
+    "address": "500 N Main St, Tarboro, NC 27886"
+   },
+   "benchmark": {
+    "isDefault": true,
+    "benchmarkDescription": "Public Address Ranges - Current Benchmark",
+    "id": "4",
+    "benchmarkName": "Public_AR_Current"
+   }
+  },
+  "addressMatches": [
+   {
+    "tigerLine": {
+     "side": "L",
+     "tigerLineId": "90178818"
+    },
+    "coordinates": {
+     "x": -77.535387357128,
+     "y": 35.898319489112
+    },
+    "addressComponents": {
+     "zip": "27886",
+     "streetName": "N MAIN",
+     "preType": "",
+     "city": "TARBORO",
+     "preDirection": "",
+     "suffixDirection": "",
+     "fromAddress": "500",
+     "state": "NC",
+     "suffixType": "ST",
+     "toAddress": "598",
+     "suffixQualifier": "",
+     "preQualifier": ""
+    },
+    "matchedAddress": "500 N MAIN ST, TARBORO, NC, 27886"
+   }
+  ]
+ }
+}

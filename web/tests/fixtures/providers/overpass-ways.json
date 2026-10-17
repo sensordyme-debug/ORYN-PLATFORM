@@ -1,0 +1,404 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API 0.7.62.11 87bfad18",
+ "osm3s": {
+  "timestamp_osm_base": "2026-10-15T19:52:36Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "way",
+   "id": 1113399861,
+   "bounds": {
+    "minlat": 35.897017,
+    "minlon": -77.5358579,
+    "maxlat": 35.8972244,
+    "maxlon": -77.5356249
+   },
+   "nodes": [
+    10186369572,
+    10186369704,
+    10186369382,
+    10186369832,
+    10186369572
+   ],
+   "geometry": [
+    {
+     "lat": 35.8971732,
+     "lon": -77.5358579
+    },
+    {
+     "lat": 35.897017,
+     "lon": -77.5357787
+    },
+    {
+     "lat": 35.8970682,
+     "lon": -77.5356249
+    },
+    {
+     "lat": 35.8972244,
+     "lon": -77.5357041
+    },
+    {
+     "lat": 35.8971732,
+     "lon": -77.5358579
+    }
+   ],
+   "tags": {
+    "addr:city": "Tarboro",
+    "addr:housenumber": "401",
+    "addr:postcode": "27886",
+    "addr:state": "NC",
+    "addr:street": "Trade Street",
+    "building": "yes",
+    "source": "esri_USDOT_NCCGIA_NC;microsoft/BuildingFootprints"
+   }
+  },
+  {
+   "type": "way",
+   "id": 1113399870,
+   "bounds": {
+    "minlat": 35.8960433,
+    "minlon": -77.5371662,
+    "maxlat": 35.8962375,
+    "maxlon": -77.5369475
+   },
+   "nodes": [
+    10186369963,
+    10186369121,
+    10186369712,
+    10186369658,
+    10186369963
+   ],
+   "geometry": [
+    {
+     "lat": 35.8961833,
+     "lon": -77.5371662
+    },
+    {
+     "lat": 35.8960433,
+     "lon": -77.5370768
+    },
+    {
+     "lat": 35.8960974,
+     "lon": -77.5369475
+    },
+    {
+     "lat": 35.8962375,
+     "lon": -77.537037
+    },
+    {
+     "lat": 35.8961833,
+     "lon": -77.5371662
+    }
+   ],
+   "tags": {
+    "building": "church",
+    "source": "microsoft/BuildingFootprints"
+   }
+  },
+  {
+   "type": "way",
+   "id": 111878149,
+   "bounds": {
+    "minlat": 35.8929362,
+    "minlon": -77.5511748,
+    "maxlat": 35.8987895,
+    "maxlon": -77.5386107
+   },
+   "nodes": [
+    170691316,
+    11013489221,
+    170691318,
+    8393053890,
+    170691320,
+    8396302896,
+    8396302906,
+    8396302881,
+    170691322,
+    170691324,
+    170691326,
+    170691328,
+    170691331,
+    8396289026,
+    8396289038,
+    8396289034,
+    170691334,
+    170691341,
+    170691343,
+    170691346,
+    170691348,
+    13584147638,
+    3915298931
+   ],
+   "geometry": [
+    {
+     "lat": 35.8929362,
+     "lon": -77.5511748
+    },
+    {
+     "lat": 35.8932784,
+     "lon": -77.550511
+    },
+    {
+     "lat": 35.893325,
+     "lon": -77.5504206
+    },
+    {
+     "lat": 35.8934635,
+     "lon": -77.5501347
+    },
+    {
+     "lat": 35.8940582,
+     "lon": -77.5489067
+    },
+    {
+     "lat": 35.8945068,
+     "lon": -77.5480237
+    },
+    {
+     "lat": 35.8946603,
+     "lon": -77.5476838
+    },
+    {
+     "lat": 35.8948662,
+     "lon": -77.5472199
+    },
+    {
+     "lat": 35.8951901,
+     "lon": -77.5465166
+    },
+    {
+     "lat": 35.8953381,
+     "lon": -77.546181
+    },
+    {
+     "lat": 35.8960103,
+     "lon": -77.5446896
+    },
+    {
+     "lat": 35.8965195,
+     "lon": -77.5435686
+    },
+    {
+     "lat": 35.896795,
+     "lon": -77.5429643
+    },
+    {
+     "lat": 35.8968859,
+     "lon": -77.5427639
+    },
+    {
+     "lat": 35.897026,
+     "lon": -77.5424485
+    },
+    {
+     "lat": 35.897119,
+     "lon": -77.5422448
+    },
+    {
+     "lat": 35.8971951,
+     "lon": -77.5420797
+    },
+    {
+     "lat": 35.8975419,
+     "lon": -77.5412954
+    },
+    {
+     "lat": 35.8979592,
+     "lon": -77.5404186
+    },
+    {
+     "lat": 35.8982852,
+     "lon": -77.5397114
+    },
+    {
+     "lat": 35.8985225,
+     "lon": -77.5392269
+    },
+    {
+     "lat": 35.8987492,
+     "lon": -77.5387038
+    },
+    {
+     "lat": 35.8987895,
+     "lon": -77.5386107
+    }
+   ],
+   "tags": {
+    "highway": "secondary",
+    "lanes": "3",
+    "maxspeed": "35 mph",
+    "name": "West Wilson Street",
+    "name_1": "State Road 1205",
+    "tiger:cfcc": "A41",
+    "tiger:county": "Edgecombe, NC",
+    "tiger:name_base": "Wilson",
+    "tiger:name_base_1": "State Road 1205",
+    "tiger:name_direction_prefix": "W",
+    "tiger:name_type": "St",
+    "tiger:reviewed": "no",
+    "tiger:zip_left": "27886",
+    "tiger:zip_right": "27886",
+    "unsigned_ref": "SR 1350"
+   }
+  },
+  {
+   "type": "way",
+   "id": 388316725,
+   "bounds": {
+    "minlat": 35.896623,
+    "minlon": -77.5352874,
+    "maxlat": 35.8983033,
+    "maxlon": -77.5342104
+   },
+   "nodes": [
+    13164936807,
+    10563388635,
+    170704596,
+    10563388631,
+    10563388617,
+    170695486
+   ],
+   "geometry": [
+    {
+     "lat": 35.896623,
+     "lon": -77.5342104
+    },
+    {
+     "lat": 35.8973139,
+     "lon": -77.534646
+    },
+    {
+     "lat": 35.8973793,
+     "lon": -77.5346872
+    },
+    {
+     "lat": 35.8974489,
+     "lon": -77.5347324
+    },
+    {
+     "lat": 35.8982425,
+     "lon": -77.5352479
+    },
+    {
+     "lat": 35.8983033,
+     "lon": -77.5352874
+    }
+   ],
+   "tags": {
+    "highway": "primary",
+    "lanes": "2",
+    "maxspeed": "20 mph",
+    "name": "North Main Street",
+    "ref": "NC 33",
+    "sidewalk:both": "separate",
+    "surface": "asphalt",
+    "tiger:cfcc": "A21",
+    "tiger:county": "Edgecombe, NC",
+    "tiger:name_base": "Main",
+    "tiger:name_base_1": "United States Highway 64 (Alt)",
+    "tiger:name_direction_prefix": "N",
+    "tiger:name_type": "St",
+    "tiger:zip_left": "27886",
+    "tiger:zip_right": "27886"
+   }
+  },
+  {
+   "type": "way",
+   "id": 38333056,
+   "bounds": {
+    "minlat": 35.8874216,
+    "minlon": -77.5393957,
+    "maxlat": 35.8879657,
+    "maxlon": -77.5378774
+   },
+   "nodes": [
+    452632923,
+    452632924,
+    452632925
+   ],
+   "geometry": [
+    {
+     "lat": 35.8874216,
+     "lon": -77.5378774
+    },
+    {
+     "lat": 35.8877206,
+     "lon": -77.5387013
+    },
+    {
+     "lat": 35.8879657,
+     "lon": -77.5393957
+    }
+   ],
+   "tags": {
+    "NHS": "yes",
+    "bridge": "yes",
+    "hgv": "designated",
+    "hgv:national_network": "yes",
+    "highway": "motorway",
+    "lanes": "2",
+    "layer": "1",
+    "maxspeed": "70 mph",
+    "oneway": "yes",
+    "ref": "US 64;US 258;NC 111;NC 122",
+    "source:hgv:national_network": "Title 23: Highways Part 658 http://ecfr.gpoaccess.gov/cgi/t/text/text-idx?c=ecfr&rgn=div5&view=text&node=23:1.0.1.7.33&idno=23",
+    "tiger:cfcc": "A21",
+    "tiger:county": "Edgecombe, NC",
+    "tiger:name_base": "United States Highway 258",
+    "tiger:name_base_1": "State Highway 122",
+    "tiger:name_base_2": "United States Highway 64",
+    "tiger:name_base_3": "State Highway 111"
+   }
+  },
+  {
+   "type": "way",
+   "id": 38333059,
+   "bounds": {
+    "minlat": 35.8871991,
+    "minlon": -77.5393477,
+    "maxlat": 35.887681,
+    "maxlon": -77.5379718
+   },
+   "nodes": [
+    452632921,
+    452632936,
+    452632937
+   ],
+   "geometry": [
+    {
+     "lat": 35.887681,
+     "lon": -77.5393477
+    },
+    {
+     "lat": 35.8874355,
+     "lon": -77.5385812
+    },
+    {
+     "lat": 35.8871991,
+     "lon": -77.5379718
+    }
+   ],
+   "tags": {
+    "NHS": "yes",
+    "bridge": "yes",
+    "hgv": "designated",
+    "hgv:national_network": "yes",
+    "highway": "motorway",
+    "lanes": "2",
+    "layer": "1",
+    "maxspeed": "70 mph",
+    "oneway": "yes",
+    "ref": "US 64;US 258;NC 111;NC 122",
+    "source:hgv:national_network": "Title 23: Highways Part 658 http://ecfr.gpoaccess.gov/cgi/t/text/text-idx?c=ecfr&rgn=div5&view=text&node=23:1.0.1.7.33&idno=23",
+    "tiger:cfcc": "A21",
+    "tiger:county": "Edgecombe, NC",
+    "tiger:name_base": "United States Highway 258",
+    "tiger:name_base_1": "State Highway 122",
+    "tiger:name_base_2": "United States Highway 64",
+    "tiger:name_base_3": "State Highway 111"
+   }
+  }
+ ]
+}

@@ -1,0 +1,290 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   ORYN design system
+   Tailwind v4 is configured CSS-first: tokens below generate
+   utilities (bg-ink-900, text-bone-50, font-mono, etc.).
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Foundations — charcoal to black */
+  --color-ink-950: #060707;
+  --color-ink-900: #0a0b0c;
+  --color-ink-850: #0f1112;
+  --color-ink-800: #141618;
+  --color-ink-750: #191c1e;
+  --color-ink-700: #202326;
+  --color-ink-600: #2b2f32;
+  --color-ink-500: #3a3f43;
+
+  /* Neutrals */
+  --color-steel-400: #6c7278;
+  --color-steel-300: #8f959b;
+  --color-steel-200: #b6babe;
+
+  /* Light surfaces & type */
+  --color-bone-200: #dcd9d1;
+  --color-bone-100: #e9e7e1;
+  --color-bone-50: #f2f1ed;
+  --color-paper: #f7f6f2;
+
+  /* Accent — aviation signal orange, used sparingly */
+  --color-signal: #ff6a2b;
+  --color-signal-soft: #ff8a55;
+
+  /* Data palette — muted, for analysis overlays & interfaces */
+  --color-data-veg: #8dbf63;
+  --color-data-water: #5fb4d6;
+  --color-data-amber: #e9b949;
+  --color-data-alert: #e5544b;
+  --color-data-violet: #a39be0;
+
+  --breakpoint-3xl: 1920px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --animate-rise: rise 1.1s var(--ease-out-expo) both;
+  --animate-fade: fade 1.4s var(--ease-out-expo) both;
+
+  @keyframes rise {
+    from {
+      transform: translate3d(0, 105%, 0);
+    }
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes hero-settle {
+    from {
+      transform: scale(1.14);
+      opacity: 0.4;
+    }
+    to {
+      transform: scale(1.04);
+      opacity: 1;
+    }
+  }
+  @keyframes hero-drift {
+    0% {
+      transform: scale(1.04) translate3d(0, 0, 0);
+    }
+    100% {
+      transform: scale(1.12) translate3d(-1.5%, -1%, 0);
+    }
+  }
+  @keyframes scan {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes flow {
+    from {
+      left: 0%;
+    }
+    to {
+      left: 100%;
+    }
+  }
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -200;
+    }
+  }
+}
+
+/* ── Base ─────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --header-h: 4.5rem;
+    --gutter: clamp(1.25rem, 4vw, 3rem);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: var(--header-h);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    background: var(--color-ink-900);
+    color: var(--color-bone-50);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-ink-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+  }
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+
+@utility shell {
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+
+@utility t-display {
+  font-size: clamp(3.4rem, 10.5vw, 11.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.055em;
+  font-weight: 500;
+}
+
+@utility t-h1 {
+  font-size: clamp(2.75rem, 7vw, 7.25rem);
+  line-height: 0.92;
+  letter-spacing: -0.048em;
+  font-weight: 500;
+}
+
+@utility t-h2 {
+  font-size: clamp(2.35rem, 5vw, 5.25rem);
+  line-height: 0.96;
+  letter-spacing: -0.042em;
+  font-weight: 500;
+}
+
+@utility t-h3 {
+  font-size: clamp(1.5rem, 2.5vw, 2.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+  font-weight: 500;
+}
+
+@utility t-h4 {
+  font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+}
+
+@utility t-lead {
+  font-size: clamp(1.125rem, 1.45vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.012em;
+}
+
+@utility t-body {
+  font-size: 1rem;
+  line-height: 1.62;
+  letter-spacing: -0.003em;
+}
+
+@utility t-small {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+@utility t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@utility t-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────── */
+
+@utility surface-light {
+  background: var(--color-bone-100);
+  color: var(--color-ink-900);
+  color-scheme: light;
+}
+
+@utility hairline {
+  border-color: color-mix(in oklab, currentColor 14%, transparent);
+}
+
+/* Fine technical grid used behind diagrams */
+@utility tech-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, currentColor 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, currentColor 7%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Cinematic scrim for text over imagery */
+@utility scrim-b {
+  background: linear-gradient(to top, rgb(6 7 7 / 0.92) 0%, rgb(6 7 7 / 0.55) 35%, rgb(6 7 7 / 0) 70%);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Masked line reveal for hero typography (CSS-only for fast LCP) */
+@utility line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+/* ── Motion preferences ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

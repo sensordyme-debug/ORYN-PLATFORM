@@ -1,0 +1,34 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+/dist/
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+
+# debug
+npm-debug.log*
+
+# env files (keep the example)
+.env*
+!.env.example
+
+# vercel
+.vercel
+/var/
+/public/vendor/
+
+# test artifacts
+/test-results/
+/playwright-report/

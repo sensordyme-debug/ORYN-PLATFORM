@@ -1,0 +1,115 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "https://api.weather.gov/stations/KRWI",
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -77.89306,
+     35.855
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KRWI",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 49.0728
+    },
+    "stationIdentifier": "KRWI",
+    "name": "Rocky Mount, Rocky Mount-Wilson Regional Airport",
+    "timeZone": "America/New_York",
+    "provider": "ASOS-HFM",
+    "subProvider": "",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 31821.249218969
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 259
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/NCZ027",
+    "county": "https://api.weather.gov/zones/county/NCC127",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/NCZ027"
+   }
+  },
+  {
+   "id": "https://api.weather.gov/stations/KPGV",
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -77.38506,
+     35.63742
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KPGV",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 6.096
+    },
+    "stationIdentifier": "KPGV",
+    "name": "Pitt-Greenville Airport",
+    "timeZone": "America/New_York",
+    "provider": "OTHER-MTR",
+    "subProvider": "",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 33459.570904856
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 154
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/NCZ044",
+    "county": "https://api.weather.gov/zones/county/NCC147",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/NCZ044"
+   }
+  },
+  {
+   "id": "https://api.weather.gov/stations/KMCZ",
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -77.1782,
+     35.86219
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KMCZ",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 22.86
+    },
+    "stationIdentifier": "KMCZ",
+    "name": "Martin County Airport",
+    "timeZone": "America/New_York",
+    "provider": "NonFedAWOS",
+    "subProvider": "TG",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 33539.651154187
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 98
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/NCZ029",
+    "county": "https://api.weather.gov/zones/county/NCC117",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/NCZ029"
+   }
+  }
+ ],
+ "observationStations": [
+  "https://api.weather.gov/stations/KRWI",
+  "https://api.weather.gov/stations/KPGV",
+  "https://api.weather.gov/stations/KMCZ"
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "id": "https://api.weather.gov/points/35.8968,-77.5358",
+ "type": "Feature",
+ "geometry": {
+  "type": "Point",
+  "coordinates": [
+   -77.5358,
+   35.8968
+  ]
+ },
+ "properties": {
+  "@id": "https://api.weather.gov/points/35.8968,-77.5358",
+  "@type": "wx:Point",
+  "cwa": "RAH",
+  "type": "land",
+  "forecastOffice": "https://api.weather.gov/offices/RAH",
+  "gridId": "RAH",
+  "gridX": 113,
+  "gridY": 68,
+  "forecast": "https://api.weather.gov/gridpoints/RAH/113,68/forecast",
+  "forecastHourly": "https://api.weather.gov/gridpoints/RAH/113,68/forecast/hourly",
+  "forecastGridData": "https://api.weather.gov/gridpoints/RAH/113,68",
+  "observationStations": "https://api.weather.gov/gridpoints/RAH/113,68/stations",
+  "relativeLocation": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -77.5572113,
+     35.905219
+    ]
+   },
+   "properties": {
+    "city": "Tarboro",
+    "state": "NC",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 0
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 0
+    }
+   }
+  },
+  "forecastZone": "https://api.weather.gov/zones/forecast/NCZ028",
+  "county": "https://api.weather.gov/zones/county/NCC065",
+  "fireWeatherZone": "https://api.weather.gov/zones/fire/NCZ028",
+  "timeZone": "America/New_York",
+  "radarStation": "KRAX",
+  "astronomicalData": {
+   "sunrise": "2026-10-15T07:17:02-04:00",
+   "sunset": "2026-10-15T18:34:41-04:00",
+   "transit": "2026-10-15T12:55:51-04:00",
+   "civilTwilightBegin": "2026-10-15T06:51:20-04:00",
+   "civilTwilightEnd": "2026-10-15T19:00:23-04:00",
+   "nauticalTwilightBegin": "2026-10-15T06:21:37-04:00",
+   "nauticalTwilightEnd": "2026-10-15T19:30:06-04:00",
+   "astronomicalTwilightBegin": "2026-10-15T05:51:59-04:00",
+   "astronomicalTwilightEnd": "2026-10-15T19:59:44-04:00"
+  },
+  "nwr": {
+   "transmitter": "WXL59",
+   "sameCode": "037065",
+   "areaBroadcast": "https://api.weather.gov/radio/WXL59/broadcast",
+   "pointBroadcast": "https://api.weather.gov/points/35.8968,-77.5358/radio"
+  }
+ }
+}

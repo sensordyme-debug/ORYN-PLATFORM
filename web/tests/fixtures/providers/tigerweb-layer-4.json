@@ -1,0 +1,10 @@
+{
+ "currentVersion": 11.5,
+ "id": 4,
+ "name": "Incorporated Places",
+ "type": "Feature Layer",
+ "description": "Incorporated Places; January 1, 2026 vintage",
+ "copyrightText": "Source: U.S. Census Bureau",
+ "geometryType": "esriGeometryPolygon",
+ "maxRecordCount": 100000
+}
