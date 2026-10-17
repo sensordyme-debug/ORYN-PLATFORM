@@ -5,17 +5,25 @@
  * detection for review. Username accounts: e2e_trial (trial-only),
  * e2e_partner (administrator-issued password that must be changed), and
  * e2e_disabled (disabled).
- * Prints the ids as JSON for the Playwright suite. Refuses production.
+ * Prints the ids (and this run's password) as JSON for the Playwright suite.
+ * Refuses production and any database whose name lacks "e2e" or "test".
+ * Normally run by tests/e2e/global-setup.ts against oryn_e2e.
  *
- *   npx tsx scripts/oryn/e2e-fixtures.ts
+ *   DATABASE_OWNER_URL=…/oryn_e2e npx tsx scripts/oryn/e2e-fixtures.ts
  */
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
 
 async function main() {
   loadEnvConfig(process.cwd());
   if (process.env.NODE_ENV === "production") throw new Error("Refusing to create e2e fixtures in production.");
-  const password = process.env.E2E_PASSWORD ?? "e2e-password-0123456789";
+  // Fixtures belong in their own database (playwright.config.ts points
+  // DATABASE_URL at oryn_e2e), never in a developer's working database.
+  const dbName = new URL(process.env.DATABASE_OWNER_URL ?? "postgres://x/").pathname.slice(1);
+  if (!/e2e|test/.test(dbName)) throw new Error(`Refusing to create e2e fixtures in "${dbName}"; use a database whose name contains "e2e" or "test".`);
+  // A fresh password every run, reported to the suite in the JSON below; no
+  // test account keeps a known password between runs.
+  const password = process.env.E2E_PASSWORD ?? randomBytes(18).toString("base64url");
   const [{ default: postgres }, accounts, authOpts, models, db] = await Promise.all([
     import("postgres"),
     import("@/server/accounts/service"),
@@ -26,14 +34,16 @@ async function main() {
   const sql = postgres(process.env.DATABASE_OWNER_URL!, { max: 1, onnotice: () => {} });
   await db.withSystem("e2e.models", (tx) => models.registerAnalytics(tx));
 
+  const op = { type: "cli", label: "e2e-fixtures" } as const;
   const user = async (email: string, name: string) => {
     const [u] = await sql<{ id: string }[]>`select id from auth_user where email = ${email}`;
-    if (u) return u.id;
-    return (await accounts.createCredentialUser({ email, name, password, emailVerified: true }, "e2e")).id;
+    if (!u) return (await accounts.createCredentialUser({ email, name, password, emailVerified: true }, "e2e")).id;
+    await accounts.setAccountDisabled(op, email, false);
+    await accounts.resetAccountPassword(op, email, { password, requireChange: false });
+    return u.id;
   };
 
   // Organizations with audit history are never deleted; reset their data instead.
-  const op = { type: "cli", label: "e2e-fixtures" } as const;
   await accounts.ensureTrialOrganization(op, { slug: "e2e-trial", name: "E2E Trial Workspace", kind: "agriculture" });
   const prior = await sql<{ id: string }[]>`select id from organizations where slug in ('e2e-farm', 'e2e-city', 'e2e-trial')`;
   for (const p of prior) {

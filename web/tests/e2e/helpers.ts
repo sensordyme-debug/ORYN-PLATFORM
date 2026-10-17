@@ -7,7 +7,8 @@ export type Fixtures = { password: string; farm: string; city: string; farmAoi: 
 /**
  * Sign-in is limited to 5 attempts per minute per address and path; the suite
  * signs in through the form more often than that, from one address. Clears
- * the limiter rows in the (development) database between such tests.
+ * the limiter rows in the e2e database (set by playwright.config.ts) between
+ * such tests.
  */
 export async function clearSignInRateLimit() {
   if (!process.env.DATABASE_OWNER_URL && existsSync(".env.local")) process.loadEnvFile(".env.local");

@@ -36,3 +36,28 @@ export function testDatabaseUrls(): { app: string; owner: string } {
   }
   return { app, owner };
 }
+
+/**
+ * End-to-end tests run against their own database (default: oryn_e2e on the
+ * same server), so their synthetic organizations, accounts, and fixture
+ * measurements never mix with a developer's working data.
+ *
+ *   E2E_DATABASE_URL / E2E_DATABASE_OWNER_URL   explicit connections
+ *
+ * When unset, both are derived from DATABASE_URL / DATABASE_OWNER_URL
+ * (including .env.local) by swapping the database name for "oryn_e2e".
+ */
+export function e2eDatabaseUrls(): { app: string; owner: string } {
+  if (!process.env.E2E_DATABASE_URL && !process.env.DATABASE_URL && existsSync(".env.local")) {
+    process.loadEnvFile(".env.local");
+  }
+  const app = process.env.E2E_DATABASE_URL ?? swapDb(process.env.DATABASE_URL, "oryn_e2e");
+  const owner = process.env.E2E_DATABASE_OWNER_URL ?? swapDb(process.env.DATABASE_OWNER_URL, "oryn_e2e");
+  if (!app || !owner) throw new Error("End-to-end tests need DATABASE_URL and DATABASE_OWNER_URL (or E2E_DATABASE_URL / E2E_DATABASE_OWNER_URL).");
+  for (const url of [app, owner]) {
+    if (!/e2e|test/.test(new URL(url).pathname)) {
+      throw new Error(`Refusing to run end-to-end tests against a database that does not look like a test database: ${new URL(url).pathname}`);
+    }
+  }
+  return { app, owner };
+}

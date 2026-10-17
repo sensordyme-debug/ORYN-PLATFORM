@@ -8,7 +8,8 @@ export const USERS = ["e2e-analyst@oryn.local", "e2e-viewer@oryn.local", "e2e-ci
 export const stateFile = (email: string) => `var/e2e-auth-${email.split("@")[0]}.json`;
 
 /**
- * Creates synthetic fixtures, then signs each test user in ONCE through the
+ * Migrates the e2e database, creates synthetic fixtures (with a password
+ * generated for this run), then signs each test user in ONCE through the
  * real /api/auth endpoint and saves the session — the suite must not trip the
  * login rate limit (5 attempts per minute per path and address), which it
  * exercises separately. Specs that sign in through the form clear the limit
@@ -18,6 +19,8 @@ export default async function globalSetup() {
   // Run tsx's CLI with this Node directly: `npx` is npx.cmd on Windows, which
   // execFileSync cannot start without a shell.
   const tsx = path.join("node_modules", "tsx", "dist", "cli.mjs");
+  // playwright.config.ts has pointed DATABASE_URL at the e2e database.
+  execFileSync(process.execPath, [tsx, "scripts/oryn/migrate.ts"], { env: { ...process.env, LOG_LEVEL: "error" }, encoding: "utf8" });
   const out = execFileSync(process.execPath, [tsx, "scripts/oryn/e2e-fixtures.ts"], { env: { ...process.env, LOG_LEVEL: "error" }, encoding: "utf8" });
   const line = out.trim().split("\n").filter((l) => l.startsWith("{")).pop();
   if (!line) throw new Error(`e2e fixtures did not report ids:\n${out}`);

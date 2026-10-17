@@ -89,7 +89,7 @@ Seeded users (`tarboro-admin@`, `farm-admin@`, `analyst@`, `viewer@`, `auditor@`
 | `npm test` | Unit tests (no database, no network) |
 | `npm run test:integration` | Integration tests against the `oryn_test` database (migrated automatically) |
 | `npm run test:all` | Unit + integration |
-| `npm run test:e2e` | Playwright end-to-end tests against a running app and database |
+| `npm run test:e2e` | Playwright end-to-end tests: migrates the `oryn_e2e` database, creates synthetic fixtures with a per-run password, and starts its own dev server on it (stop any other `next dev` in this directory first) |
 | `npm run db:up` | Start local PostgreSQL + PostGIS (Docker) |
 | `npm run db:migrate` | Apply pending migrations (as `DATABASE_OWNER_URL`; `npm run db:migrate:status` changes nothing, `-- --check` exits 3 when migrations are pending) |
 | `npm run db:seed` | Development workspaces (see above) |

@@ -7,7 +7,8 @@
 # NOT have BYPASSRLS, so row-level security policies apply to every query the
 # web app and worker make.
 #
-# A second database, oryn_test, is created for the integration test suite.
+# Two more databases are created: oryn_test for the integration test suite and
+# oryn_e2e for the end-to-end suite (its fixtures never touch oryn).
 set -euo pipefail
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-SQL
@@ -22,4 +23,5 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-S
   END
   \$\$;
   CREATE DATABASE oryn_test OWNER $POSTGRES_USER;
+  CREATE DATABASE oryn_e2e OWNER $POSTGRES_USER;
 SQL

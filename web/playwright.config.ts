@@ -1,12 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
+import { e2eDatabaseUrls } from "./tests/helpers/test-env";
 
 /**
  * End-to-end tests against a running app (default http://localhost:3000)
- * backed by a migrated database. Fixtures are synthetic e2e-* organizations
- * created by scripts/oryn/e2e-fixtures.ts in the global setup.
+ * backed by their own database (oryn_e2e, migrated by the global setup).
+ * Fixtures are synthetic e2e-* organizations created by
+ * scripts/oryn/e2e-fixtures.ts in the global setup.
+ *
+ * The suite starts its own dev server on that database. Stop any other
+ * `next dev` in this directory first (Next.js allows one per directory); with
+ * E2E_BASE_URL set, the server at that address must use the same database.
  *
  *   npm run test:e2e
  */
+const db = e2eDatabaseUrls();
+// Inherited by the global setup, the fixture script, the helpers, and the
+// dev server below.
+process.env.DATABASE_URL = db.app;
+process.env.DATABASE_OWNER_URL = db.owner;
+process.env.ORYN_STORAGE_DIR = "./var/e2e-storage";
 export default defineConfig({
   testDir: "tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",
@@ -27,5 +39,12 @@ export default defineConfig({
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : { command: "npm run dev", url: "http://localhost:3000/login", reuseExistingServer: true, timeout: 180_000 },
+    : {
+        command: "npm run dev",
+        url: "http://localhost:3000/login",
+        // Never reuse a server that may be running on the development database.
+        reuseExistingServer: false,
+        timeout: 180_000,
+        env: { DATABASE_URL: db.app, DATABASE_OWNER_URL: db.owner, ORYN_STORAGE_DIR: "./var/e2e-storage" },
+      },
 });
