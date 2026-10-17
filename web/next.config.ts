@@ -1,4 +1,13 @@
 import type { NextConfig } from "next";
+import { ENGINE_API_PREFIXES, ENGINE_BASE_PATH } from "./src/lib/intel/engine";
+
+/**
+ * The geospatial engine (God's Eye View, the root of this repository) runs as
+ * its own Node service bound to the loopback interface. ORYN forwards its
+ * document, assets and public-data proxies so the browser sees one origin.
+ * src/proxy.ts admits these requests only with a valid ORYN session.
+ */
+const ENGINE_URL = (process.env.ORYN_ENGINE_URL || "http://127.0.0.1:5180").replace(/\/+$/, "");
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -29,6 +38,16 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 828, 1080, 1280, 1600, 1920, 2560],
     imageSizes: [96, 160, 256, 384, 512],
     qualities: [70, 75, 80, 85],
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: `${ENGINE_BASE_PATH}:path*`, destination: `${ENGINE_URL}${ENGINE_BASE_PATH}:path*` },
+        ...ENGINE_API_PREFIXES.map((prefix) => ({ source: `/api/${prefix}/:path*`, destination: `${ENGINE_URL}/api/${prefix}/:path*` })),
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async headers() {
     return [

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { request } from "@playwright/test";
 import { clearSignInRateLimit } from "./helpers";
 
@@ -14,7 +15,10 @@ export const stateFile = (email: string) => `var/e2e-auth-${email.split("@")[0]}
  * first (clearSignInRateLimit).
  */
 export default async function globalSetup() {
-  const out = execFileSync("npx", ["tsx", "scripts/oryn/e2e-fixtures.ts"], { env: { ...process.env, LOG_LEVEL: "error" }, encoding: "utf8" });
+  // Run tsx's CLI with this Node directly: `npx` is npx.cmd on Windows, which
+  // execFileSync cannot start without a shell.
+  const tsx = path.join("node_modules", "tsx", "dist", "cli.mjs");
+  const out = execFileSync(process.execPath, [tsx, "scripts/oryn/e2e-fixtures.ts"], { env: { ...process.env, LOG_LEVEL: "error" }, encoding: "utf8" });
   const line = out.trim().split("\n").filter((l) => l.startsWith("{")).pop();
   if (!line) throw new Error(`e2e fixtures did not report ids:\n${out}`);
   mkdirSync("var", { recursive: true });

@@ -1,6 +1,8 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { CAMERA_PROVIDERS } from "@/lib/intel/cameras";
+import { ENGINE_API_PREFIXES } from "@/lib/intel/engine";
+import { engineAccessAllowed } from "@/server/intel/engine-gate";
 
 /**
  * Runs before platform and auth pages:
@@ -10,6 +12,9 @@ import { CAMERA_PROVIDERS } from "@/lib/intel/cameras";
  *  2. A per-request nonce-based Content Security Policy for the platform.
  *     Marketing pages are static and keep the global headers from
  *     next.config.ts.
+ *  3. The geospatial engine (God's Eye View, served under /engine/ with its
+ *     public-data proxies under /api/<engine route>) is reachable only with a
+ *     valid ORYN session. Its documents carry the engine's own CSP.
  */
 
 const TILE_HOSTS = [
@@ -30,6 +35,9 @@ const CAMERA_HOSTS = [...new Set(Object.values(CAMERA_PROVIDERS).flatMap((p) => 
  */
 const WASM_PAGES = /^\/app\/[^/]+\/intel(\/|$)/;
 
+const ENGINE_PATH = /^\/engine(\/|$)/;
+const ENGINE_API = new RegExp(`^/api/(${ENGINE_API_PREFIXES.join("|")})(/|$)`);
+
 export function csp(nonce: string, opts: { wasm?: boolean } = {}): string {
   const dev = process.env.NODE_ENV === "development";
   return [
@@ -43,6 +51,11 @@ export function csp(nonce: string, opts: { wasm?: boolean } = {}): string {
     `media-src 'self' blob: ${CAMERA_HOSTS}`,
     "worker-src 'self' blob:",
     "child-src blob:",
+    // The intelligence globe frames the geospatial engine, served from this
+    // origin. A policy belongs to the document, and the platform reaches the
+    // globe by client-side navigation from any page (and from sign-in), so
+    // every platform document allows same-origin frames — and no others.
+    "frame-src 'self'",
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -52,8 +65,22 @@ export function csp(nonce: string, opts: { wasm?: boolean } = {}): string {
   ].join("; ");
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  if (ENGINE_PATH.test(pathname) || ENGINE_API.test(pathname)) {
+    const cookie = getSessionCookie(request, { cookiePrefix: "oryn" });
+    if (!(await engineAccessAllowed(request.headers, cookie))) {
+      return NextResponse.json(
+        { error: { code: "unauthenticated", message: "Sign in to use the intelligence globe." } },
+        { status: 401, headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+    // The engine sets its own Content-Security-Policy and framing rules.
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
 
   if (pathname === "/app" || pathname.startsWith("/app/")) {
     if (!getSessionCookie(request, { cookiePrefix: "oryn" })) {
@@ -84,5 +111,8 @@ export const config = {
         { type: "header", key: "purpose", value: "prefetch" },
       ],
     },
+    // The geospatial engine and its proxies (keep in step with ENGINE_API_PREFIXES).
+    "/engine/:path*",
+    "/api/:engine(adsbdb|celestrak|cctv|cyclones|fire-perimeters|firms|flights|gbfs|geocode|gnss-integrity|google|launches|local-receivers|map|mapillary|military|military-installations|overpass|radio|regional-brief|route|terrain|tomtom|transit|vessels|weather|weather-effects|wind)/:path*",
   ],
 };
