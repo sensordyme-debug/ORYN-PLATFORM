@@ -13,6 +13,7 @@
  */
 import { randomBytes, randomUUID } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
+import { FIXTURE_PROVIDER_ID } from "@/lib/fixtures";
 
 async function main() {
   loadEnvConfig(process.cwd());
@@ -102,7 +103,7 @@ async function main() {
   for (const [days, mean] of [[13, 0.7], [3, 0.4]] as const) {
     const [asset] = await sql<{ id: string }[]>`
       insert into source_assets (provider_id, collection, external_id, kind, platform, acquired_at, footprint, cloud_cover, gsd_m, epsg, grid_code, metadata_hash, license, attribution)
-      values ('e2e', 'sentinel-2-l2a', ${"E2E_" + randomUUID()}, 'optical', 'synthetic', now() - make_interval(days => ${days}),
+      values (${FIXTURE_PROVIDER_ID}, 'sentinel-2-l2a', ${"E2E_" + randomUUID()}, 'optical', 'synthetic', now() - make_interval(days => ${days}),
               ST_SetSRID(ST_GeomFromGeoJSON(${square(-77.6, 35.8, 0.2)}), 4326), 5, 10, 32618, 'MGRS-18STE', 'e2e', 'synthetic test fixture', 'Synthetic test fixture')
       returning id`;
     assetIds.push(asset!.id);
@@ -130,7 +131,7 @@ async function main() {
   // A synthetic within-field low-vigour zone on the farm, found in one synthetic NDVI observation.
   const [zAsset] = await sql<{ id: string }[]>`
     insert into source_assets (provider_id, collection, external_id, kind, platform, acquired_at, footprint, cloud_cover, gsd_m, epsg, grid_code, metadata_hash, license, attribution)
-    values ('e2e', 'sentinel-2-l2a', ${"E2E_" + randomUUID()}, 'optical', 'synthetic', now() - interval '4 days',
+    values (${FIXTURE_PROVIDER_ID}, 'sentinel-2-l2a', ${"E2E_" + randomUUID()}, 'optical', 'synthetic', now() - interval '4 days',
             ST_SetSRID(ST_GeomFromGeoJSON(${square(-77.6, 35.7, 0.3)}), 4326), 3, 10, 32618, 'MGRS-18STE', 'e2e', 'synthetic test fixture', 'Synthetic test fixture')
     returning id`;
   const [zRun] = await sql<{ id: string }[]>`

@@ -7,7 +7,8 @@ import { DetectionSwatch } from "@/components/map/legend";
 import { NotesThread } from "@/components/map/notes";
 import type { Detection, Observation } from "@/components/map/types";
 import type { InspectorPerms } from "@/components/map/aoi-inspector";
-import { Badge, Button, EVIDENCE_TONE, inputClass, KeyValues, Notice, ResultClassBadge, VERIFICATION_TONE } from "@/components/platform/ui";
+import { Badge, Button, EVIDENCE_TONE, FixtureBadge, inputClass, KeyValues, Notice, ResultClassBadge, VERIFICATION_TONE } from "@/components/platform/ui";
+import { isFixtureProvider } from "@/lib/fixtures";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { formatArea, formatLatLon } from "@/lib/geo";
 
@@ -101,6 +102,7 @@ export function DetectionInspector({
             <Link className="hover:underline" href={`?aoi=${d.aoiId}`}>{d.aoiName}</Link> · {d.areaM2 ? formatArea(d.areaM2) : "—"} · {formatLatLon(d.centroid, 5)}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
+            {[d.baseline, d.comparison].some((o) => isFixtureProvider(o?.asset.providerId)) ? <FixtureBadge /> : null}
             <ResultClassBadge resultClass={d.resultClass} verified={d.verificationStatus === "confirmed"} />
             <Badge tone={EVIDENCE_TONE[d.evidenceGrade]}>Evidence: {d.evidenceGrade}</Badge>
             <Badge tone={VERIFICATION_TONE[d.verificationStatus]}>{d.verificationStatus.replace(/_/g, " ")}</Badge>

@@ -236,20 +236,44 @@ export function Table({ children, className }: { children: ReactNode; className?
 export const th = "border-b border-bone-50/[0.08] px-3 py-2 font-normal t-eyebrow text-bone-50/45 whitespace-nowrap";
 export const td = "border-b border-bone-50/[0.05] px-3 py-2 align-top text-bone-50/85";
 
-export function TrialBanner({ sharedAccount }: { sharedAccount: boolean }) {
+/**
+ * What the organization banner may say about measurements. Imagery and
+ * measurements are real only when no test-fixture rows exist in the org
+ * (scripts/oryn/e2e-fixtures.ts invents observations under provider "e2e").
+ */
+function measurementsSentence(fixtures: boolean) {
+  return fixtures
+    ? "Some measurements and findings here are invented test fixtures, labelled “Test fixture”; they are not observations."
+    : "Imagery and measurements over them are real.";
+}
+
+export function TrialBanner({ sharedAccount, fixtures = false }: { sharedAccount: boolean; fixtures?: boolean }) {
   return (
     <div className="border-b border-data-amber/30 bg-data-amber/[0.08] px-4 py-1.5 text-[0.75rem] text-data-amber">
-      Trial workspace. Areas and records here are synthetic sample data, not a real customer&apos;s; imagery and measurements over them are
-      real.{sharedAccount ? " You are using a shared trial account — do not enter or upload anything confidential." : ""}
+      Trial workspace. Areas and records here are synthetic sample data, not a real customer&apos;s. {measurementsSentence(fixtures)}
+      {sharedAccount ? " You are using a shared trial account — do not enter or upload anything confidential." : ""}
     </div>
   );
 }
 
-export function SyntheticBanner() {
+export function SyntheticBanner({ fixtures = false }: { fixtures?: boolean }) {
   return (
     <div className="border-b border-data-amber/30 bg-data-amber/[0.08] px-4 py-1.5 text-[0.75rem] text-data-amber">
-      Synthetic development organization. Boundaries and records here are sample data, not a real customer&apos;s. Imagery and
-      measurements over them are real.
+      Synthetic development organization. Boundaries and records here are sample data, not a real customer&apos;s. {measurementsSentence(fixtures)}
     </div>
   );
+}
+
+/** A non-synthetic org that nevertheless holds test-fixture rows. */
+export function FixtureBanner() {
+  return (
+    <div className="border-b border-data-alert/30 bg-data-alert/[0.08] px-4 py-1.5 text-[0.75rem] text-data-alert">
+      This organization contains test-fixture measurements, labelled “Test fixture”. They are not observations and must not be relied on.
+    </div>
+  );
+}
+
+/** Marks a record derived from test-fixture imagery. */
+export function FixtureBadge() {
+  return <Badge tone="alert" title="Invented by the end-to-end test fixtures; not a satellite observation">Test fixture</Badge>;
 }

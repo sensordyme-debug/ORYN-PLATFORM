@@ -3,7 +3,8 @@
 import { ExternalLink } from "lucide-react";
 import { RasterLegend } from "@/components/map/legend";
 import type { Observation } from "@/components/map/types";
-import { Badge, KeyValues, ResultClassBadge } from "@/components/platform/ui";
+import { Badge, FixtureBadge, KeyValues, ResultClassBadge } from "@/components/platform/ui";
+import { isFixtureProvider } from "@/lib/fixtures";
 import { formatDateTime, formatPercent, relativeTime } from "@/lib/format";
 
 /**
@@ -16,6 +17,7 @@ export function ObservationMeta({ o, timeZone, layer }: { o: Observation; timeZo
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
+        {isFixtureProvider(o.asset.providerId) ? <FixtureBadge /> : null}
         <ResultClassBadge resultClass={o.resultClass} />
         {q.flags?.map((f) => <Badge key={f} tone="watch">{f.replace(/_/g, " ")}</Badge>)}
       </div>

@@ -8,6 +8,9 @@ test("agricultural monitoring: draw a field, configure it, and add an alert rule
   await page.goto("/app/e2e-farm");
   await expect(page.getByRole("heading", { name: "E2E Farm (synthetic)" })).toBeVisible();
   await expect(page.getByText(/Synthetic development organization/)).toBeVisible();
+  // e2e-farm holds invented fixture observations: the banner must not call them real.
+  await expect(page.getByText(/invented test fixtures/)).toBeVisible();
+  await expect(page.getByText(/Imagery and measurements over them are real/)).toHaveCount(0);
 
   // Draw a field on the map.
   await page.goto("/app/e2e-farm/map");
