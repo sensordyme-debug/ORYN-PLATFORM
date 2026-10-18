@@ -92,6 +92,18 @@ describe("choosing the image pair", () => {
     expect(why["B-closest-but-cloudy"]).toBe("Usable, 90.0% clear; the chosen image is clearer (98.5%).");
   });
 
+  it("explains near-identical comparison images instead of calling one clearer", () => {
+    const s = selectPair(
+      [cand({ id: "B", at: "2025-09-10", clearFraction: 0.99 })],
+      [cand({ id: "C1", at: "2026-09-11", clearFraction: 0.9982 }), cand({ id: "C2", at: "2026-09-18", clearFraction: 0.9978 }), cand({ id: "C3", at: "2026-09-01", clearFraction: 0.9982 })],
+    );
+    if (!s.ok) throw new Error("expected a pair");
+    const why = Object.fromEntries(s.decisions.comparison.map((d) => [d.externalId, d.why]));
+    expect(s.comparison.externalId).toBe("C1");
+    expect(why.C2).toBe("Usable, 99.8% clear: slightly fewer clear pixels than the chosen image.");
+    expect(why.C3).toBe("Usable and equally clear (99.8%); the later image was chosen.");
+  });
+
   it("never pairs images from different grids", () => {
     const s = selectPair([cand({ id: "B", at: "2025-09-05", gridCode: "MGRS-17SQV", epsg: 32617 })], [cand({ id: "C", at: "2026-09-05" })]);
     expect(s).toMatchObject({ ok: false, outcome: "incompatible_tiles" });
