@@ -83,6 +83,7 @@ export function checkConfiguration(role: ServiceRole, e: Env = process.env): Pre
 
   // ── Synthetic data and one-off secrets ─────────────────────
   if (truthy(e, "ORYN_ALLOW_SYNTHETIC_SEED")) err("synthetic_seed_enabled", "ORYN_ALLOW_SYNTHETIC_SEED must not be enabled in production.");
+  if (truthy(e, "ORYN_ALL_LAYERS")) err("all_layers_enabled", "ORYN_ALL_LAYERS is a local development switch (sources not cleared for commercial use) and must not be set in production.");
   for (const k of ["ORYN_DEV_SEED_PASSWORD", "E2E_PASSWORD"]) if (val(e, k)) err("dev_secret_present", `${k} is a development/test variable and must not be set in production.`);
   if (service) {
     for (const k of ["ORYN_ADMIN_PASSWORD", "ORYN_PROVISION_PASSWORD"]) {

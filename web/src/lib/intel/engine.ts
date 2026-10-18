@@ -31,6 +31,42 @@ export const ENGINE_DOCUMENT = `${ENGINE_BASE_PATH}index.html?host=oryn`;
  */
 export const ENGINE_API_PREFIXES = ["cctv", "cyclones", "firms", "flights", "military", "military-installations", "weather", "wind"] as const;
 
+/**
+ * Also forwarded with ORYN_ALL_LAYERS (local development, never production):
+ * the routes of every withheld layer and of the engine's map, terrain and
+ * place search. Still never forwarded: `setup` (writes the engine's .env),
+ * `openai` and `realtime` (paid voice), `google` and `tomtom` (paid).
+ */
+export const ENGINE_DEV_API_PREFIXES = [
+  "adsbdb",
+  "celestrak",
+  "fire-perimeters",
+  "gbfs",
+  "geocode",
+  "gnss-integrity",
+  "launches",
+  "local-receivers",
+  "mapillary",
+  "overpass",
+  "radio",
+  "regional-brief",
+  "route",
+  "terrain",
+  "transit",
+  "vessels",
+  "weather-effects",
+] as const;
+
+/** The engine routes this server forwards. */
+export function engineApiPrefixes(allLayers: boolean): readonly string[] {
+  return allLayers ? [...ENGINE_API_PREFIXES, ...ENGINE_DEV_API_PREFIXES] : ENGINE_API_PREFIXES;
+}
+
+/** ORYN_ALL_LAYERS outside production; read where src/server/config/env.ts cannot be imported (next.config.ts). */
+export function allLayersFromEnv(e: Record<string, string | undefined> = process.env): boolean {
+  return ["1", "true", "yes", "on"].includes((e.ORYN_ALL_LAYERS ?? "").toLowerCase()) && e.NODE_ENV !== "production";
+}
+
 export type EngineFeedState = "current" | "fallback" | "loading" | "stale" | "partial" | "unavailable" | "off";
 
 export type EngineChip = { id: string; label: string; active: boolean; state: string; title: string | null; disabled: boolean };
@@ -60,7 +96,7 @@ export type EngineLayer = {
   licence: EngineLicence | null;
 };
 
-export type EngineNature = "observed" | "forecast" | "computed" | "estimated" | "reference";
+export type EngineNature = "observed" | "forecast" | "computed" | "estimated" | "reference" | "simulated";
 export type EngineLicenceSource = { name: string; licence: string; attribution: string; terms: string | null };
 export type EngineLicence = {
   offered: boolean;
@@ -69,6 +105,8 @@ export type EngineLicence = {
   reason: string | null;
   note: string | null;
   sources: EngineLicenceSource[];
+  /** Offered only by a development build (ORYN_ALL_LAYERS): not cleared for commercial use. */
+  development?: boolean;
 };
 
 /** How each kind of engine data is labelled: never call a model or estimate an observation. */
@@ -78,6 +116,7 @@ export const NATURE_LABEL: Record<EngineNature, string> = {
   computed: "Derived product",
   estimated: "Observed, with estimated geometry",
   reference: "Reference map data",
+  simulated: "Simulated, not data",
 };
 
 /** Where a statement came from: a data provider, or ORYN's own records. */

@@ -24,6 +24,12 @@ describe("production preflight", () => {
     expect(codes(base, "worker", "error")).toEqual([]);
   });
 
+  it("refuses the all-layers development switch in production", () => {
+    expect(codes({ ...base, ORYN_ALL_LAYERS: "1" }, "web", "error")).toContain("all_layers_enabled");
+    expect(codes({ ...base, ORYN_ALL_LAYERS: "1" }, "worker", "error")).toContain("all_layers_enabled");
+    expect(codes(base, "web", "error")).not.toContain("all_layers_enabled");
+  });
+
   it("refuses synthetic seeding and development/test secrets", () => {
     expect(codes({ ...base, ORYN_ALLOW_SYNTHETIC_SEED: "true" }, "web", "error")).toContain("synthetic_seed_enabled");
     expect(codes({ ...base, ORYN_ALLOW_SYNTHETIC_SEED: "true" }, "migrate", "error")).toContain("synthetic_seed_enabled");

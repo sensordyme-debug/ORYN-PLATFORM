@@ -116,6 +116,7 @@ export function createBrowserViteConfig({
   command,
   base,
   excludeNoncommercial = false,
+  hostAllLayers = false,
 } = {}) {
   const basePath = normalizeBasePath(base);
   return {
@@ -165,7 +166,9 @@ export function createBrowserViteConfig({
       // Build output and the ORYN web application (its own toolchain and
       // .next cache) are not engine sources; watching them only invites
       // locked-file errors on Windows.
-      watch: { ignored: ['**/dist-engine/**', '**/web/**'] },
+      watch: {
+        ignored: ['**/dist-engine/**', '**/dist-engine-all/**', '**/web/**'],
+      },
       // These headers protect the document containing Provider Settings and
       // give the whole page a real Content-Security-Policy (BROWSER_CSP).
       // Embed-mode documents are framable instead: embed-framing.js rewrites
@@ -182,6 +185,8 @@ export function createBrowserViteConfig({
       'import.meta.env.MAPILLARY_CLIENT_TOKEN': JSON.stringify(
         mapillaryToken ?? '',
       ),
+      // Development host builds offer every layer (src/ui/host/hostLicences.js).
+      'import.meta.env.GEV_HOST_ALL_LAYERS': JSON.stringify(hostAllLayers),
     },
     build: { chunkSizeWarningLimit: 1500 },
   };

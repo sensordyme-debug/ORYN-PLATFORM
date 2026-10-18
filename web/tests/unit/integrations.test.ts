@@ -54,6 +54,13 @@ describe("licence gate for integrations without commercial terms", () => {
     }
   });
 
+  it("are all on under ORYN_ALL_LAYERS (local development), and still follow the production gate", () => {
+    for (const id of ids) {
+      expect(integrationGate(id, { production: false, verified: [], licenceCleared: [], allLayers: true })).toEqual({ enabled: true });
+      expect(integrationGate(id, { production: true, verified: [], licenceCleared: [], allLayers: true }).enabled).toBe(false);
+    }
+  });
+
   it("does not affect integrations with commercial terms", () => {
     expect(integrationGate("usgs-earthquakes", { production: false, verified: [], licenceCleared: [] })).toEqual({ enabled: true });
   });

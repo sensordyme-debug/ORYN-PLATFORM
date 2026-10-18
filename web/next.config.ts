@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { ENGINE_API_PREFIXES, ENGINE_BASE_PATH } from "./src/lib/intel/engine";
+import { allLayersFromEnv, engineApiPrefixes, ENGINE_BASE_PATH } from "./src/lib/intel/engine";
 
 /**
  * The geospatial engine (God's Eye View, the root of this repository) runs as
@@ -48,7 +48,8 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         { source: `${ENGINE_BASE_PATH}:path*`, destination: `${ENGINE_URL}${ENGINE_BASE_PATH}:path*` },
-        ...ENGINE_API_PREFIXES.map((prefix) => ({ source: `/api/${prefix}/:path*`, destination: `${ENGINE_URL}/api/${prefix}/:path*` })),
+        // ORYN_ALL_LAYERS (local development only) adds the withheld layers' routes.
+        ...engineApiPrefixes(allLayersFromEnv()).map((prefix) => ({ source: `/api/${prefix}/:path*`, destination: `${ENGINE_URL}/api/${prefix}/:path*` })),
       ],
       afterFiles: [],
       fallback: [],

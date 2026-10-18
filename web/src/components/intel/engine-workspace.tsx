@@ -336,6 +336,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
   const offered = (l: EngineLayer) => l.licence === null || l.licence.offered;
   const byId = new Map(layers.filter((l) => l.showInTogglePanel && offered(l)).map((l) => [l.id, l]));
   const withheldLayers = layers.filter((l) => l.showInTogglePanel && !offered(l));
+  const developmentLayers = layers.filter((l) => l.showInTogglePanel && l.licence?.development);
   const groups = [
     ...ENGINE_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((id) => byId.get(id)).filter((l): l is EngineLayer => Boolean(l)) })),
     { label: "Other", items: [...byId.values()].filter((l) => !GROUPED.has(l.id) && !l.id.startsWith("bhote-koshi")) },
@@ -420,6 +421,11 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
           </fieldset>
 
           {!bridge && !fatal ? <p className="mb-4 text-[0.75rem] text-bone-50/55" role="status">Loading the globe&apos;s layers…</p> : null}
+          {developmentLayers.length ? (
+            <Notice tone="warn" className="mb-4 text-[0.75rem]">
+              Development build: every engine layer is available, including {developmentLayers.length} not cleared for commercial use (marked in amber). Never show this build to customers.
+            </Notice>
+          ) : null}
           {groups.map((g) => (
             <fieldset key={g.label} className="mb-4 min-w-0">
               <legend className="t-eyebrow mb-2 text-bone-50/55">{g.label}</legend>
@@ -442,7 +448,8 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
             </details>
           ) : null}
           <p className="text-[0.6875rem] text-bone-50/55">
-            Geospatial engine: God&apos;s Eye View (MIT). Basemap: NASA GIBS Blue Marble and USDA NAIP imagery via USGS The National Map. Public feeds refresh periodically; each layer shows its source, licence, and when it was last retrieved. Layers marked Unavailable need a provider key or are not reachable from this deployment.
+            Geospatial engine: God&apos;s Eye View (MIT).{" "}
+            {developmentLayers.length ? "Basemaps: every map style the engine offers (development build)." : "Basemap: NASA GIBS Blue Marble and USDA NAIP imagery via USGS The National Map."} Public feeds refresh periodically; each layer shows its source, licence, and when it was last retrieved. Layers marked Unavailable need a provider key or are not reachable from this deployment.
           </p>
         </div>
       </aside>
@@ -514,7 +521,11 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
             {tone ? <Badge tone={tone}>{STATE_LABEL[l.state]}</Badge> : blocked ? <Badge tone="muted">Unavailable</Badge> : null}
           </span>
           {l.source ? <span className="block text-[0.6875rem] text-bone-50/55">{l.source}</span> : null}
-          {l.licence?.offered && l.licence.nature ? (
+          {l.licence?.offered && l.licence.development ? (
+            <span className="block text-[0.6875rem] text-data-amber" title={l.licence.note ?? undefined}>
+              {l.licence.nature ? `${NATURE_LABEL[l.licence.nature]} · ` : ""}Development only: not cleared for commercial use
+            </span>
+          ) : l.licence?.offered && l.licence.nature ? (
             <span className="block text-[0.6875rem] text-bone-50/55" title={l.licence.sources.map((s) => `${s.name}: ${s.licence}. ${s.attribution}`).join("\n")}>
               {NATURE_LABEL[l.licence.nature]} · {l.licence.sources.map((s) => s.licence).join("; ")}
             </span>

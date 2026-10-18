@@ -81,6 +81,46 @@ test('non-commercial, simulated and unverified layers are withheld in ORYN', () 
   assert.equal(hostLayerOffered(null, 'traffic'), true);
 });
 
+test('a development build offers every layer, marked with why it is not cleared', () => {
+  const natures = [
+    'observed',
+    'forecast',
+    'computed',
+    'estimated',
+    'reference',
+    'simulated',
+  ];
+  for (const id of LAYER_IDS) {
+    const policy = hostLayerLicence('oryn', id, { allLayers: true });
+    assert.equal(policy.status, 'offered', id);
+    if (ORYN[id].status === 'withheld') {
+      assert.equal(policy.development, true, id);
+      assert.ok(natures.includes(policy.nature), `${id} nature`);
+      assert.ok(
+        policy.note.startsWith(
+          'Development build only, not cleared for commercial use: ',
+        ) && policy.note.endsWith(ORYN[id].reason),
+        `${id} note`,
+      );
+    } else assert.equal(policy, ORYN[id], `${id} keeps its own policy`);
+  }
+  // Simulated vehicles are never called data, even in development.
+  assert.equal(
+    hostLayerLicence('oryn', 'traffic', { allLayers: true }).nature,
+    'simulated',
+  );
+  assert.equal(hostLayerOffered('oryn', 'traffic', { allLayers: true }), true);
+  // Without the option nothing changes.
+  assert.equal(hostLayerOffered('oryn', 'traffic'), false);
+  let installed = false;
+  installHostLicenceGuard(
+    { addVisibilityGuard: () => (installed = true) },
+    'oryn',
+    { allLayers: true },
+  );
+  assert.equal(installed, false);
+});
+
 test('the lifecycle guard refuses withheld layers on every path and allows offered ones', async () => {
   let guard = null;
   const unsubscribe = installHostLicenceGuard(

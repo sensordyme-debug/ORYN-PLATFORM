@@ -39,12 +39,20 @@ test('explicit build inputs preserve browser-only defines, plugin order and loop
     'import.meta.env.GOOGLE_MAPS_API_KEY': '"browser-fixture"',
     'import.meta.env.CESIUM_ION_TOKEN': '"ion-fixture"',
     'import.meta.env.MAPILLARY_CLIENT_TOKEN': '""',
+    // Host builds offer only licence-cleared layers unless built for development.
+    'import.meta.env.GEV_HOST_ALL_LAYERS': 'false',
   });
   assert.equal(
     createBrowserViteConfig({ mapillaryToken: 'MLY|1|abc' }).define[
       'import.meta.env.MAPILLARY_CLIENT_TOKEN'
     ],
     '"MLY|1|abc"',
+  );
+  assert.equal(
+    createBrowserViteConfig({ hostAllLayers: true }).define[
+      'import.meta.env.GEV_HOST_ALL_LAYERS'
+    ],
+    'true',
   );
   // A wildcard bind keeps the Host-header check; LAN names are explicit.
   for (const host of ['0.0.0.0', '::'])

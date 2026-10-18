@@ -1,7 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { CAMERA_PROVIDERS } from "@/lib/intel/cameras";
-import { ENGINE_API_PREFIXES } from "@/lib/intel/engine";
+import { allLayersFromEnv, engineApiPrefixes } from "@/lib/intel/engine";
 import { engineAccessAllowed } from "@/server/intel/engine-gate";
 
 /**
@@ -36,7 +36,8 @@ const CAMERA_HOSTS = [...new Set(Object.values(CAMERA_PROVIDERS).flatMap((p) => 
 const WASM_PAGES = /^\/app\/[^/]+\/intel(\/|$)/;
 
 const ENGINE_PATH = /^\/engine(\/|$)/;
-const ENGINE_API = new RegExp(`^/api/(${ENGINE_API_PREFIXES.join("|")})(/|$)`);
+// ORYN_ALL_LAYERS (local development only) forwards the withheld layers' routes too.
+const ENGINE_API = new RegExp(`^/api/(${engineApiPrefixes(allLayersFromEnv()).join("|")})(/|$)`);
 
 export function csp(nonce: string, opts: { wasm?: boolean } = {}): string {
   const dev = process.env.NODE_ENV === "development";
@@ -111,8 +112,10 @@ export const config = {
         { type: "header", key: "purpose", value: "prefetch" },
       ],
     },
-    // The geospatial engine and its proxies (keep in step with ENGINE_API_PREFIXES).
+    // The geospatial engine and its proxies (keep in step with ENGINE_API_PREFIXES
+    // and ENGINE_DEV_API_PREFIXES; routes not forwarded fall through to a 404).
     "/engine/:path*",
     "/api/:engine(cctv|cyclones|firms|flights|military|military-installations|weather|wind)/:path*",
+    "/api/:engine(adsbdb|celestrak|fire-perimeters|gbfs|geocode|gnss-integrity|launches|local-receivers|mapillary|overpass|radio|regional-brief|route|terrain|transit|vessels|weather-effects)/:path*",
   ],
 };

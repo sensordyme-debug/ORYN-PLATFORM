@@ -164,6 +164,18 @@ npm ci            # first time only
 npm run dev       # http://localhost:3000
 ```
 
+**Development: every layer (`ORYN_ALL_LAYERS`).** Run
+`npm run oryn:engine -- --all-layers` (it builds into `dist-engine-all/`) and
+set `ORYN_ALL_LAYERS=1` in `web/.env.local`. The globe then offers every engine
+layer, including the ones `ORYN_LICENCE_REVIEW.md` withholds, each marked in
+amber as not cleared for commercial use. It also offers every basemap, terrain,
+online place search, OpenSky flights and all camera networks. The ORYN sources
+NIFC, CelesTrak, Caltrans and Open-Meteo are on too. Paid services (Google,
+TomTom, OpenAI, Cesium ion) stay off. Engine routes that write configuration or
+start paid sessions are never forwarded. The switch is ignored in production,
+and the production preflight refuses it. The e2e suite pins it off; run it
+against the licence-clean engine (`npm run oryn:engine -- --build`).
+
 `web/.env.local` (not committed) holds `DATABASE_URL`, `DATABASE_OWNER_URL`,
 `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `ORYN_ENGINE_URL` for the local
 cluster; see `web/.env.example`. The local database was migrated with the

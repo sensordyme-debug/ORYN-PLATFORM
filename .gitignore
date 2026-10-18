@@ -27,3 +27,4 @@ changelog.d/.assembling/
 
 # ORYN host build of the engine (GEV_BASE_PATH=/engine/)
 dist-engine/
+dist-engine-all/

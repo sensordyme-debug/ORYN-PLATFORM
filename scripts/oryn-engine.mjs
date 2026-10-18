@@ -12,6 +12,13 @@
  *   npm run oryn:engine                 build if needed, then serve on :5180
  *   npm run oryn:engine -- --build      force a rebuild first
  *   npm run oryn:engine -- --port 5190  another port (set ORYN_ENGINE_URL to match)
+ *   npm run oryn:engine -- --all-layers development build: every layer (also ORYN_ALL_LAYERS=1)
+ *
+ * --all-layers is for local development only. It builds into dist-engine-all/
+ * with every dataset, feed, map and search service the standalone engine has,
+ * and the host offers every layer, each marked as not cleared for commercial
+ * use (src/ui/host/hostLicences.js). Paid services stay off in both modes.
+ * The ORYN web app needs ORYN_ALL_LAYERS=1 too, to forward those layers' routes.
  *
  * ORYN is a commercial product, so this build and server are licence-clean
  * (see ORYN_LICENCE_REVIEW.md and src/ui/host/hostLicences.js):
@@ -37,15 +44,23 @@ const flag = (name, fallback) => {
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
 const port = String(Number.parseInt(flag('--port', '5180'), 10) || 5180);
-const outDir = 'dist-engine';
+const allLayers =
+  args.includes('--all-layers') ||
+  ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.ORYN_ALL_LAYERS ?? '').toLowerCase(),
+  );
+const outDir = allLayers ? 'dist-engine-all' : 'dist-engine';
 const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
-/** Paid or non-commercial services ORYN never uses, whatever a local .env says. */
-const CLEARED_KEYS = [
+/** Paid services ORYN never calls, whatever a local .env says. */
+const PAID_KEYS = [
   'GOOGLE_MAPS_API_KEY',
   'GOOGLE_MAPS_SERVER_API_KEY',
   'CESIUM_ION_TOKEN',
   'TOMTOM_API_KEY',
   'OPENAI_API_KEY',
+];
+/** Free services whose terms exclude commercial use. */
+const NONCOMMERCIAL_KEYS = [
   'MAPILLARY_CLIENT_TOKEN',
   'OPENSKY_CLIENT_ID',
   'OPENSKY_CLIENT_SECRET',
@@ -53,18 +68,25 @@ const CLEARED_KEYS = [
   'OPENSKY_PASSWORD',
   'AISSTREAM_API_KEY',
 ];
+const CLEARED_KEYS = allLayers
+  ? PAID_KEYS
+  : [...PAID_KEYS, ...NONCOMMERCIAL_KEYS];
 const env = {
   ...process.env,
   ...Object.fromEntries(CLEARED_KEYS.map((key) => [key, ''])),
   GEV_BASE_PATH: '/engine/',
   GEV_EMBED_FRAME_ANCESTORS: "'self'",
-  GEV_EXCLUDE_NONCOMMERCIAL: '1',
-  GEV_FLIGHTS_SOURCE: 'adsb-lol',
-  CCTV_PACKS: HOST_CCTV_PACKS.oryn.join(','),
-  // DriveBC partner cameras belong to third parties; keep ministry ones.
-  CCTV_DRIVEBC_MINISTRY_ONLY: '1',
-  // The shipped camera ground heights were sampled from Google 3D Tiles.
-  CCTV_GROUND_HEIGHTS_FILE: 'off',
+  ...(allLayers
+    ? { GEV_HOST_ALL_LAYERS: '1' }
+    : {
+        GEV_EXCLUDE_NONCOMMERCIAL: '1',
+        GEV_FLIGHTS_SOURCE: 'adsb-lol',
+        CCTV_PACKS: HOST_CCTV_PACKS.oryn.join(','),
+        // DriveBC partner cameras belong to third parties; keep ministry ones.
+        CCTV_DRIVEBC_MINISTRY_ONLY: '1',
+        // The shipped camera ground heights were sampled from Google 3D Tiles.
+        CCTV_GROUND_HEIGHTS_FILE: 'off',
+      }),
 };
 
 /** Ship the licence texts the MIT and Apache-2.0 licences require. */
@@ -98,22 +120,31 @@ function run(viteArgs) {
 }
 
 const distProblems = () => checkCommercialDist(path.join(root, outDir));
-if (args.includes('--build') || distProblems().length) {
+const needsBuild = allLayers
+  ? !existsSync(path.join(root, outDir, 'index.html'))
+  : distProblems().length > 0;
+if (args.includes('--build') || needsBuild) {
   console.log(
     `[oryn-engine] building the engine under /engine/ into ${outDir}/`,
   );
   await run(['build', '--outDir', outDir]);
   addLicenceNotices();
-  const problems = distProblems();
-  if (problems.length) {
-    console.error('[oryn-engine] the build is not licence-clean:');
-    for (const problem of problems) console.error(`  - ${problem}`);
-    process.exit(1);
+  if (!allLayers) {
+    const problems = distProblems();
+    if (problems.length) {
+      console.error('[oryn-engine] the build is not licence-clean:');
+      for (const problem of problems) console.error(`  - ${problem}`);
+      process.exit(1);
+    }
+    console.log(
+      '[oryn-engine] build checked: no non-commercial datasets; licence notices present',
+    );
   }
-  console.log(
-    '[oryn-engine] build checked: no non-commercial datasets; licence notices present',
-  );
 }
+if (allLayers)
+  console.log(
+    '[oryn-engine] DEVELOPMENT build: every layer, including ones not cleared for commercial use. Never serve it to customers.',
+  );
 console.log(
   `[oryn-engine] serving on http://127.0.0.1:${port}/engine/ (loopback only)`,
 );

@@ -12,6 +12,9 @@ import {
 // `?host=oryn`; see src/ui/host/. Without it the standalone app is unchanged.
 const host = resolveHost();
 applyHostDocument(host);
+// A development build for the host offers every layer, map and search
+// service, marked as not cleared for commercial use (hostLicences.js).
+const allLayers = Boolean(host) && import.meta.env.GEV_HOST_ALL_LAYERS === true;
 
 const application = createStandaloneApplication({
   googleApiKey: import.meta.env.GOOGLE_MAPS_API_KEY,
@@ -23,7 +26,7 @@ const application = createStandaloneApplication({
   providerSettings: !host,
   // A host shows only layers and imagery whose licences it has verified
   // (src/ui/host/hostLicences.js), and never probes for Google 3D tokens.
-  ...(host
+  ...(host && !allLayers
     ? {
         mapOptions: {
           allowedStackIds: HOST_MAP_STACKS[host],
@@ -37,7 +40,7 @@ const application = createStandaloneApplication({
     : {}),
 });
 
-if (host) installHostBridge({ application, host });
+if (host) installHostBridge({ application, host, allLayers });
 
 application.start().catch((error) => {
   console.error("God's Eye View initialization failed:", error);

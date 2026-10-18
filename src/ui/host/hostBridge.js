@@ -268,6 +268,7 @@ export function describeLayer(
           reason: licence.reason,
           note: licence.note,
           sources: licence.sources.map((source) => ({ ...source })),
+          development: licence.development === true,
         }
       : null,
   };
@@ -277,9 +278,14 @@ const OVERLAY_ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
 
 /**
  * Install `window.__gevHost` once the application is ready.
- * @param {{application:{subscribe:Function,getComponents:Function,getState:Function}}, host:string, windowRef?:Window}} options
+ * @param {{application:{subscribe:Function,getComponents:Function,getState:Function}}, host:string, allLayers?:boolean, windowRef?:Window}} options
  */
-export function installHostBridge({ application, host, windowRef = window }) {
+export function installHostBridge({
+  application,
+  host,
+  allLayers = false,
+  windowRef = window,
+}) {
   const listeners = new Set();
   const overlays = new Map();
   let status = { state: 'starting', error: null };
@@ -323,12 +329,13 @@ export function installHostBridge({ application, host, windowRef = window }) {
     const { dataManager } = engineParts();
     const now = Date.now();
     return new Map(
-      dataManager
-        .getAll()
-        .map((row) => [
-          row.id,
-          describeLayer(row, { now, licence: hostLayerLicence(host, row.id) }),
-        ]),
+      dataManager.getAll().map((row) => [
+        row.id,
+        describeLayer(row, {
+          now,
+          licence: hostLayerLicence(host, row.id, { allLayers }),
+        }),
+      ]),
     );
   };
   const rowControls = (id) => {
@@ -456,7 +463,7 @@ export function installHostBridge({ application, host, windowRef = window }) {
         describeLayer(row, {
           now,
           controls: rowControls(row.id),
-          licence: hostLayerLicence(host, row.id),
+          licence: hostLayerLicence(host, row.id, { allLayers }),
         }),
       );
     },
@@ -464,7 +471,7 @@ export function installHostBridge({ application, host, windowRef = window }) {
       const { dataManager } = engineParts();
       if (!dataManager.layers.has(id)) throw new Error(`Unknown layer: ${id}`);
       // The lifecycle guard (hostLicences.js) refuses too; this says why.
-      const policy = hostLayerLicence(host, id);
+      const policy = hostLayerLicence(host, id, { allLayers });
       if (enabled && policy && policy.status !== 'offered')
         throw new Error(`Not available in this deployment: ${policy.reason}`);
       return dataManager.setEnabled(id, Boolean(enabled), { origin: 'user' });

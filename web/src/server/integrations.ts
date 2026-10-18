@@ -54,11 +54,13 @@ export const GATED_INTEGRATION_IDS = Object.keys(GATED_INTEGRATIONS) as GatedInt
 
 export type IntegrationGate = { enabled: true } | { enabled: false; reason: string };
 
-export type IntegrationGateConfig = { production?: boolean; verified?: string[]; licenceCleared?: readonly string[] };
+export type IntegrationGateConfig = { production?: boolean; verified?: string[]; licenceCleared?: readonly string[]; allLayers?: boolean };
 
 export function integrationGate(id: GatedIntegration, cfg: IntegrationGateConfig = {}): IntegrationGate {
   const withheld = LICENCE_WITHHELD[id];
-  if (withheld && !(cfg.licenceCleared ?? env.licenceClearedIntegrations()).includes(id)) {
+  // ORYN_ALL_LAYERS (local development only) treats every withheld source as cleared.
+  const cleared = (cfg.allLayers ?? env.allLayers()) || (cfg.licenceCleared ?? env.licenceClearedIntegrations()).includes(id);
+  if (withheld && !cleared) {
     return {
       enabled: false,
       reason: `${GATED_INTEGRATIONS[id].label} is off: ${withheld} Once a licence is confirmed, add "${id}" to ORYN_LICENCE_CLEARED_INTEGRATIONS.`,

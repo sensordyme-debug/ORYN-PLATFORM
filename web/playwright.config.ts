@@ -19,6 +19,8 @@ const db = e2eDatabaseUrls();
 process.env.DATABASE_URL = db.app;
 process.env.DATABASE_OWNER_URL = db.owner;
 process.env.ORYN_STORAGE_DIR = "./var/e2e-storage";
+// The suite checks the licence-clean configuration, whatever .env.local says.
+process.env.ORYN_ALL_LAYERS = "0";
 export default defineConfig({
   testDir: "tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",
@@ -45,6 +47,6 @@ export default defineConfig({
         // Never reuse a server that may be running on the development database.
         reuseExistingServer: false,
         timeout: 180_000,
-        env: { DATABASE_URL: db.app, DATABASE_OWNER_URL: db.owner, ORYN_STORAGE_DIR: "./var/e2e-storage" },
+        env: { DATABASE_URL: db.app, DATABASE_OWNER_URL: db.owner, ORYN_STORAGE_DIR: "./var/e2e-storage", ORYN_ALL_LAYERS: "0" },
       },
 });

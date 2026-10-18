@@ -30,5 +30,6 @@ export default defineConfig(({ command, mode }) => {
     command,
     base: process.env.GEV_BASE_PATH,
     excludeNoncommercial: process.env.GEV_EXCLUDE_NONCOMMERCIAL === '1',
+    hostAllLayers: process.env.GEV_HOST_ALL_LAYERS === '1',
   });
 });

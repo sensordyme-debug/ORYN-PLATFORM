@@ -140,9 +140,9 @@ export const env = {
   /**
    * Open-Meteo's free API is licensed for non-commercial use only. ORYN is a
    * commercial product, so it is never used unless explicitly allowed (for a
-   * non-commercial evaluation) or replaced by a paid key.
+   * non-commercial evaluation), replaced by a paid key, or ORYN_ALL_LAYERS is on.
    */
-  openMeteoAllowNonCommercial: () => bool("OPEN_METEO_ALLOW_NONCOMMERCIAL", false),
+  openMeteoAllowNonCommercial: () => bool("OPEN_METEO_ALLOW_NONCOMMERCIAL", false) || env.allLayers(),
   /** The public Overpass instance may not back a production application; set OVERPASS_URL to your own. */
   overpassUrlConfigured: () => Boolean(read("OVERPASS_URL")),
   gdeltEnabled: () => bool("GDELT_ENABLED", true),
@@ -166,6 +166,13 @@ export const env = {
   verifiedIntegrations: () => list("ORYN_VERIFIED_INTEGRATIONS"),
   /** Integrations held back for licensing that an operator has cleared (src/server/integrations.ts). */
   licenceClearedIntegrations: () => list("ORYN_LICENCE_CLEARED_INTEGRATIONS"),
+  /**
+   * Local development only: every source and engine layer, including ones
+   * not cleared for commercial use (licence-withheld integrations, the free
+   * Open-Meteo API, and the engine routes of withheld layers). Never on in
+   * production; the preflight refuses it there.
+   */
+  allLayers: () => bool("ORYN_ALL_LAYERS", false) && !isProduction(),
   /**
    * Run production-mode builds on one machine against localhost (rehearsal).
    * Honoured only when BETTER_AUTH_URL points at localhost, so it can never
