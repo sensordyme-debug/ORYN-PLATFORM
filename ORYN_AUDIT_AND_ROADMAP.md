@@ -20,6 +20,50 @@ reproduction (GDAL/numpy), not an accuracy assessment.
 
 ---
 
+## Status on branch `feat/oryn-pilot-hardening` (2026-10-17)
+
+The branch starts at tag `pre-pilot-hardening-2026-10-17` (local only, not
+pushed). It implements M0a and M1. The audit below is unchanged and describes
+the state at that tag.
+
+**Done (RUN: each item has a test, and the defect tests fail on the tag).**
+
+| Item | Commit(s) |
+| --- | --- |
+| Tunnel stopped; e2e fixtures moved to their own `oryn_e2e` database with a random password per run; the old e2e accounts on the dev database are disabled, must change their password, have no sessions, and no longer match the published default (checked against their stored hashes, 2026-10-17) | `b28a7b25` |
+| 1.7 #1 scheduled rule evaluation (every 6 h, and on create, edit, enable) | `055f23ca` |
+| 1.7 #2 notes respect area restrictions | `4675ef9a` |
+| 1.7 #3 dashboard and area chart use one sensor; dashboard scoped by area | `69182b9e` |
+| 1.7 #4 fixture observations labelled as fixtures, never as real | `e290cb2f` |
+| 1.7 #5 exports list uses `exports.create`; #7 AI summary opt-in via the API | `b9fc99ca` |
+| 1.7 #8 API keys stop working when their creator leaves or loses key rights | `fb9e5b88` |
+| 1.7 #9, #10 FIRMS and cyclone observation times; stable FIRMS ids | `66c1d3b5`, `97a72ed4` |
+| 1.8.1 licensing: licence-clean engine build (no CC BY-NC data, dist check), public-imagery basemap, restricted feeds off, per-layer licence shown or layer withheld, licence gate for unconfirmed ORYN sources, notices corrected | `677114e2`, `067eaf2a`, `0c817d5e`, `fb634258`, `d74019a1`, `64fe0fae` (see `ORYN_LICENCE_REVIEW.md`) |
+| Dams source label (OpenStreetMap, not USACE) | `45c0c7f1` |
+| M1 season comparison and change evidence report | `e8364d40`, `18c6584d`, `035f094f`, `6346c29c`, `9d449948`, `1b29cfdd`, `e6de76b4` |
+| Credential forms post even before hydration (found during verification: a pre-hydration submit put a password in a GET URL in the local dev log; the log was redacted) | `d6ce5a39` |
+
+**Not done.** 1.7 #6 (scheduled cluster syncs carry `org_id = null`, so the
+Data sources page shows only backfills), #11 (Google, TomTom and Mapillary;
+moot while those layers are withheld), #12 (Space Missions focus mode), #13,
+#14; all of M0b (engine origin isolation and CSP, engine gate by membership,
+per-user rate limits, CI, MFA, statement timeouts, redirect-safe URL guard,
+data deletion and export); M2–M6.
+
+**Rollback.** Everything is in local commits on this branch.
+
+- Leave the branch: `git switch experiment/oryn-unified-platform` (the branch
+  this one started from; its tip is the tag).
+- Undo single changes: `git revert <commit>` for any row above.
+- Database: migration `0009_comparisons.sql` is additive (a new table, a
+  nullable column, a widened check). Code at the tag ignores them. The dev
+  database's `schema_migrations` checksums were rewritten from CRLF to LF for
+  migrations 0001–0008 (content identical apart from line endings); the
+  previous values are in `devtools/audit/schema_migrations_before.clean.txt`.
+- Engine: rebuild with `npm run oryn:engine -- --build` after switching.
+
+---
+
 ## Phase 1: capability audit
 
 ### 1.1 What was run

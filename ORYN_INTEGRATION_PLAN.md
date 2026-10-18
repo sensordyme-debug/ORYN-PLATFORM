@@ -123,12 +123,33 @@ browser ── ORYN web app (web/, Next.js) ────────────
 | Row-level security: `oryn_app` without tenant context | sees 0 of 4 areas; no BYPASSRLS |
 | Visual comparison with the original at 1440×900 and 390×844 | 12 public pages and 18 platform pages pixel-identical; home and Aerial analysis differ only in background video frames; Intelligence globe differs by design |
 
-Live feeds observed through the ORYN app: USGS earthquakes, NIFC wildfire
-perimeters, NOAA NHC cyclones, NOAA nowCOAST radar, ECCC air quality,
+Live feeds observed through the ORYN app at import: USGS earthquakes, NIFC
+wildfire perimeters, NOAA NHC cyclones, NOAA nowCOAST radar, ECCC air quality,
 CelesTrak satellites, Launch Library launches, OpenSky / adsb.lol aircraft
 (labelled Fallback when served by adsb.lol), adsb.lol military aircraft and
 GNSS integrity, public CCTV poses. Unavailable without keys: AIS vessels
 (`AISSTREAM_API_KEY`), NASA FIRMS (`FIRMS_MAP_KEY`).
+
+Since the licence review (`ORYN_LICENCE_REVIEW.md`, branch
+`feat/oryn-pilot-hardening`), the ORYN build offers only layers whose terms
+permit commercial display. Aircraft come from adsb.lol only, CCTV from four
+openly licensed operators, and the basemap is NASA GIBS plus USGS NAIP. NIFC
+perimeters, CelesTrak satellites and other engine layers (17 in all) are
+withheld; the engine refuses to enable them, and the Intelligence globe panel
+lists the ones that have toggles with their reasons.
+
+### Re-run on `feat/oryn-pilot-hardening` (2026-10-17)
+
+| Check | Result |
+| --- | --- |
+| `web`: `npm test` (unit) | 350 passed, 9 skipped |
+| `web`: `npm run test:integration` (tenant isolation against `oryn_test`) | 124 passed, 4 skipped |
+| `web`: `npx playwright test` (own `oryn_e2e` database, own server) | 26 passed (after correcting two intel-globe assertions left stale by the licence work) |
+| `web`: `npm run typecheck`, `npm run lint` | pass |
+| engine: `npm test` | 7,707 passed, 0 failed, 10 skipped |
+| engine: `format:check`, `check:boundaries`, `i18n`, `layer-token:check --base-ref pre-pilot-hardening-2026-10-17` | pass |
+| engine: `scripts/check-commercial-dist.mjs` on the served build | pass |
+| Season comparison on real Earth Search Sentinel-2 L2A (East tract, Sept 2025 vs Sept 2026, tile 18STE) | 18 candidate changes; PDF and pages inspected |
 
 ## Running it locally
 
@@ -163,10 +184,13 @@ its synthetic `e2e-*` organizations.
 - The 2D Map workspace remains the website's MapLibre AOI tool, because it
   carries ORYN workflows (drawing and editing areas, imagery timeline, change
   review) the engine does not implement. It links to the globe and back.
-- Engine layers that need keys (AIS, NASA FIRMS, TomTom, Google 3D) show as
-  Unavailable until keys are set on the engine server.
+- Engine layers that need keys (AIS, NASA FIRMS) show as Unavailable until
+  keys are set on the engine server. TomTom traffic and Google 3D are paid and
+  withheld in the ORYN build; the ORYN engine script clears their keys.
 - Turning on Space Missions (rocket launches) activates the engine's own
   focus mode, which isolates the globe to launches and satellites and switches
   other layers off; the ORYN panel reflects it but does not yet explain it.
-- The engine's Google 3D token probe returns 404 when no Google key is
-  configured; the engine then uses its keyless globe, as upstream.
+- In host mode the engine does not probe for a Google 3D token; it renders the
+  public-imagery basemap on an ellipsoid (no terrain service).
+- Scheduled cluster syncs are stored with `org_id = null`, so the Data sources
+  page shows a tenant only its own backfills (audit 1.7 #6, not fixed).
