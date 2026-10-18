@@ -42,6 +42,9 @@ the state at that tag.
 | Dams source label (OpenStreetMap, not USACE) | `45c0c7f1` |
 | M1 season comparison and change evidence report | `e8364d40`, `18c6584d`, `035f094f`, `6346c29c`, `9d449948`, `1b29cfdd`, `e6de76b4` |
 | Credential forms post even before hydration (found during verification: a pre-hydration submit put a password in a GET URL in the local dev log; the log was redacted) | `d6ce5a39` |
+| Alert-rule wording; intel-globe e2e assertions | `1ba7a20c`, `6974e1a6` |
+| Upstream assessment (14 projects); Cesium ion recorded as restricted | `cc46d412` (`ORYN_UPSTREAM_ASSESSMENT.md`) |
+| Missing records inside the workspace, error and loading boundaries, WCAG AA contrast, keyboard-scrollable tables, one vocabulary per org kind, early file selection in uploads | `34337105`, `27f14b8b` (`ORYN_PRODUCT_SESSION.md`) |
 
 **Not done.** 1.7 #6 (scheduled cluster syncs carry `org_id = null`, so the
 Data sources page shows only backfills), #11 (Google, TomTom and Mapillary;
