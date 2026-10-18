@@ -103,6 +103,12 @@ export function selectPair(baseline: Candidate[], comparison: Candidate[]): Sele
             why: `Usable and about as clear (${pct(c.clearFraction)}), but ${daysText(season(c))} from the comparison image in the season; the chosen image is ${daysText(season(chosen))}.`,
           };
         }
+        if (chosen && clear(c) === clear(chosen)) {
+          return { ...base, decision: "not_chosen" as const, why: `Usable and equally clear (${pct(c.clearFraction)}); the later image was chosen.` };
+        }
+        if (chosen && clear(chosen) - clear(c) < 0.001) {
+          return { ...base, decision: "not_chosen" as const, why: `Usable, ${pct(c.clearFraction)} clear: slightly fewer clear pixels than the chosen image.` };
+        }
         if (chosen) return { ...base, decision: "not_chosen" as const, why: `Usable, ${pct(c.clearFraction)} clear; the chosen image is clearer (${pct(chosen.clearFraction)}).` };
         return { ...base, decision: "not_chosen" as const, why: `Usable, ${pct(c.clearFraction)} clear, ${gridLabel(c)}; no comparable image in the other period.` };
       });

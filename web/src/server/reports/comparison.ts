@@ -38,7 +38,7 @@ export async function loadComparisonForReport(tx: Tx, orgId: string, comparisonI
 type AddEvidence = (kind: EvidenceKind, table: string | null, rowIds: string[], label: string) => string;
 type AddFinding = (section: string, text: string, evidenceIds: string[]) => void;
 
-const pct = (f: number | null | undefined) => (f === null || f === undefined ? "unknown" : `${Math.round(f * 100)}%`);
+const pct = (f: number | null | undefined) => (f === null || f === undefined ? "unknown" : `${(Math.round(f * 1000) / 10).toFixed(1)}%`);
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 export function buildComparisonSection(src: ComparisonSource, addEvidence: AddEvidence, addFinding: AddFinding): ComparisonSection {

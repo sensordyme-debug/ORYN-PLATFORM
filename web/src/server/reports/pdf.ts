@@ -60,6 +60,8 @@ const clip = (s: string, n = 500) => (s.length > n ? `${s.slice(0, n - 1)}…` :
 const d10 = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : "-");
 const dt = (iso: string | null | undefined) => (iso ? `${iso.slice(0, 16).replace("T", " ")} UTC` : "-");
 const n = (v: number | null | undefined, digits = 3) => (typeof v === "number" && Number.isFinite(v) ? String(Math.round(v * 10 ** digits) / 10 ** digits) : "-");
+/** One decimal, so 99.8% is not shown as 100%. */
+const pct1 = (v: number | null | undefined) => (typeof v === "number" && Number.isFinite(v) ? `${(Math.round(v * 1000) / 10).toFixed(1)}%` : "-");
 const pctOf = (v: number | null | undefined) => (typeof v === "number" && Number.isFinite(v) ? `${Math.round(v * 100)}%` : "-");
 
 // ── Layout helpers ─────────────────────────────────────────────
@@ -397,8 +399,8 @@ function drawComparison(doc: Doc, c: ReportContent, cmp: ComparisonSection, buff
     ["Thresholds", `NDVI change >= ${cmp.method.threshold}; region >= ${formatArea(cmp.method.min_area_m2)}; at least ${Math.round(cmp.method.min_overlap * 100)}% of the area clear in both images`],
     ...(cmp.measurements
       ? ([
-          ["Clear in both images", pctOf(cmp.measurements.overlap)],
-          ["Area covered by the tile", pctOf(cmp.measurements.coverage_fraction)],
+          ["Clear in both images", pct1(cmp.measurements.overlap)],
+          ["Area covered by the tile", pct1(cmp.measurements.coverage_fraction)],
           ["Pixel grid", cmp.measurements.same_grid === null ? "-" : cmp.measurements.same_grid ? "Same grid (no resampling)" : "Different grids (baseline resampled)"],
           ["Time between images", cmp.measurements.days_between === null ? "-" : `${cmp.measurements.days_between} days; ${cmp.measurements.seasonal_offset_days ?? "-"} days apart in the season`],
         ] as [string, string][])
@@ -425,7 +427,7 @@ function drawComparison(doc: Doc, c: ReportContent, cmp: ComparisonSection, buff
         i.role,
         `${i.external_id}${i.platform ? ` (${i.platform})` : ""}`,
         dt(i.acquired_at),
-        `${pctOf(i.clear_fraction)} / ${pctOf(i.coverage_fraction)}`,
+        `${pct1(i.clear_fraction)} / ${pct1(i.coverage_fraction)}`,
         `${i.grid_code ?? "-"} (${i.epsg ?? "-"})`,
         i.license ?? "not recorded",
         i.evidence_id,
@@ -524,7 +526,7 @@ function drawComparison(doc: Doc, c: ReportContent, cmp: ComparisonSection, buff
         { header: "Clear", width: 0.6, align: "right" },
         { header: "Decision", width: 3.2 },
       ],
-      list.map((d) => [d10(d.acquired_at), d.external_id, pctOf(d.clear_fraction), d.why]),
+      list.map((d) => [d10(d.acquired_at), d.external_id, pct1(d.clear_fraction), d.why]),
       7,
     );
   }

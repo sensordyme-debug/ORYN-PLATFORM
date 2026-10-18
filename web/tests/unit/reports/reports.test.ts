@@ -157,6 +157,17 @@ describe("report content", () => {
     expect(templateSummary(c)).toMatch(/No usable imagery has been processed/);
   });
 
+  it("never calls real measurements of a synthetic organization unreal, and flags test fixtures", () => {
+    const base = source();
+    const synthetic = { ...base.org, is_synthetic: true };
+    const real = buildReportContent({ ...base, org: synthetic });
+    const text = real.limitations.general.map((l) => l.text).join(" ");
+    expect(text).toMatch(/imagery and measurements come from the sources listed/);
+    expect(text).not.toMatch(/not real-world measurements/);
+    const fixtures = buildReportContent({ ...base, org: synthetic, assets: base.assets.map((x) => ({ ...x, provider_id: "e2e" })) });
+    expect(fixtures.limitations.general.map((l) => l.text).join(" ")).toMatch(/invented test fixtures/);
+  });
+
   it("labels news as claims with independent-source counts by distinct domain", () => {
     const art = (id: string, domain: string, story: string) => ({
       article_id: id,

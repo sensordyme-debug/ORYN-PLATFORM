@@ -20,6 +20,7 @@ import { WEATHER_VARIABLES, type ObservationQuality, type RasterRef } from "@/se
 import { dailySeries, type EvalWeather } from "@/server/alerts/evaluate";
 import { WEATHER_KIND_CAVEAT } from "@/server/alerts/explain";
 import type { Tx } from "@/server/db/client";
+import { isFixtureProvider } from "@/lib/fixtures";
 import { buildComparisonSection, loadComparisonForReport, type ComparisonSource } from "@/server/reports/comparison";
 import type {
   AlertEntry,
@@ -347,7 +348,7 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
   const assetIds = [
     ...new Set([
       ...observations.map((o) => o.asset_id),
-      ...(latestValid ? [latestValid.asset_id] : []),
+      ...(latestValid && !comparison ? [latestValid.asset_id] : []),
       ...detections.flatMap((d) => d.source_asset_ids),
       ...comparisonAssets,
     ]),
@@ -363,7 +364,7 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
   const modelKeys = [
     ...new Set([
       ...observations.map((o) => `${o.model_id}@${o.model_version}`),
-      ...(latestValid ? [`${latestValid.model_id}@${latestValid.model_version}`] : []),
+      ...(latestValid && !comparison ? [`${latestValid.model_id}@${latestValid.model_version}`] : []),
       ...detections.filter((d) => d.model_id && d.model_version).map((d) => `${d.model_id}@${d.model_version}`),
       ...runs.map((r) => `${r.model_id}@${r.model_version}`),
       ...(comparison ? [`${ANALYTICS["ndvi-period-change"].id}@${ANALYTICS["ndvi-period-change"].version}`] : []),
@@ -866,7 +867,13 @@ export function buildReportContent(src: ReportSource): ReportContent {
       : []),
     "Observations, model estimates, forecasts, official warnings, candidate changes, and news claims are different kinds of information and are reported separately.",
     ...(aoi?.is_synthetic ? ["The AOI boundary is a development placeholder, not a surveyed boundary."] : []),
-    ...(src.org.is_synthetic ? ["This organization holds synthetic sample data for development; values are not real-world measurements."] : []),
+    ...(src.org.is_synthetic
+      ? [
+          src.assets.some((a) => isFixtureProvider(a.provider_id))
+            ? "This organization holds synthetic sample data for development, and some measurements in it are invented test fixtures (provider \"e2e\"); they are not observations."
+            : "This organization holds synthetic sample data for development: its boundaries and records are samples, not a real customer's. The imagery and measurements come from the sources listed in this report.",
+        ]
+      : []),
     ...(news ? [NEWS_NOTE] : []),
     ...(weather ? weather.kinds.filter((k) => k.variables.length).map((k) => k.caveat) : []),
   ];
