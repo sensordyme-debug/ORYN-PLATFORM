@@ -17,6 +17,7 @@ export function ForgotPasswordForm() {
   }
   return (
     <form
+      method="post"
       className="mt-5 flex flex-col gap-4"
       onSubmit={async (e) => {
         e.preventDefault();
@@ -49,6 +50,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   }
   return (
     <form
+      method="post"
       className="mt-5 flex flex-col gap-4"
       onSubmit={async (e) => {
         e.preventDefault();

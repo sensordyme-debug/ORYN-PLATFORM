@@ -59,7 +59,7 @@ export function InviteSignup({ token, email }: { token: string; email: string })
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4">
       <p className="text-[0.875rem] text-bone-50/65">Create your account to accept.</p>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <Field label="Email" htmlFor="email">

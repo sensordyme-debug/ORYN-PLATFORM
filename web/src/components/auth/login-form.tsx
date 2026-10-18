@@ -35,7 +35,7 @@ export function LoginForm({ next, resetAvailable }: { next: string; resetAvailab
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
+    <form method="post" onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <Field label="Username" htmlFor="identifier" hint="Accounts created from an email invitation can also use their email address.">
         <input
