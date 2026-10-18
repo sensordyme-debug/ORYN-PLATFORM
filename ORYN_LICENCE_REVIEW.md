@@ -99,6 +99,7 @@ Verdicts:
 | OpenSky flights and tracks | Restricted: commercial use needs written permission |
 | adsbdb enrichment | Route data "may not be copied, published, or incorporated into other databases" without permission |
 | Google 3D tiles, Street View, Places; TomTom; Mapillary | Paid or keyed services; not configured |
+| Cesium ion (terrain, imagery, geocoding) | Restricted: the ion terms (revised 2025-08) grant a personal licence that does not permit including ion in a commercially available solution; the free plan is non-commercial. `CESIUM_ION_TOKEN` is cleared by `scripts/oryn-engine.mjs`, and the viewer is created with `baseLayer: false` and `geocoder: false`, so no ion or Bing request is made. The CesiumJS library itself is Apache-2.0 (see `ORYN_UPSTREAM_ASSESSMENT.md`). |
 | Re:Earth Terrain / Mapterhorn | Unclear: no terms for the hosting service and no licence for output tiles. The ORYN globe uses the smooth ellipsoid. |
 | Bundled CCTV ground heights | Sampled from Google Photorealistic 3D Tiles; Google's terms forbid storing derived content. Not served. |
 | Fire perimeters (NIFC), satellites (CelesTrak), launches (orbits from CelesTrak) | Unclear terms |
