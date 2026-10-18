@@ -96,6 +96,51 @@ export function ingestAisStreamEnvelope(envelope) {
 }
 
 /**
+ * Store one position from a feed that is not AISStream (already parsed into
+ * this cache's row shape), with the same validation, track sampling and
+ * pruning. Returns false when the record has no MMSI or no valid position.
+ * @param {{mmsi:string,lat:number,lon:number,name?:string,imo?:string,type?:string,destination?:string,speed?:number|null,course?:number|null,heading?:number|null,epochMs:number}} p
+ * @returns {boolean}
+ */
+export function ingestAisPosition(p) {
+  const mmsi = stringValue(p?.mmsi);
+  const lat = numberValue(p?.lat);
+  const lon = numberValue(p?.lon);
+  if (
+    !mmsi ||
+    lat === null ||
+    lon === null ||
+    Math.abs(lat) > 90 ||
+    Math.abs(lon) > 180
+  )
+    return false;
+  const epochMs = numberValue(p.epochMs) ?? Date.now();
+  const epochSec = Math.floor(epochMs / 1000);
+  _aisStreamVessels.set(mmsi, {
+    lat,
+    lon,
+    name: stringValue(p.name) || `MMSI ${mmsi}`,
+    mmsi,
+    imo: stringValue(p.imo),
+    type: stringValue(p.type),
+    destination: stringValue(p.destination),
+    speed: normalizedSpeedOverGround(p.speed),
+    course: normalizedCourseOverGround(p.course),
+    heading: normalizedHeading(p.heading),
+    last_position_UTC: new Date(epochMs).toISOString(),
+    last_position_epoch: epochSec,
+    _updatedAt: Date.now(),
+  });
+  appendAisTrackSample(mmsi, lat, lon, epochSec);
+  return true;
+}
+
+/** Drop cached rows older than the stale window (call after a batch of ingestAisPosition). */
+export function pruneAisPositions() {
+  pruneAisStreamCache();
+}
+
+/**
  * Parses an AISStream UTC timestamp into epoch seconds (fallback: now).
  */
 function aisEpochSeconds(value) {

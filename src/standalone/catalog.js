@@ -9,6 +9,7 @@ export function createStandaloneCatalog({
   nepalBoundaryResolver,
   sources = {},
   streetLevelProviders,
+  streetLevelKeylessFirst = false,
   signal = new AbortController().signal,
   surface = createSurfaceServices({
     terrainSource: createApplicationRequestServices().terrain,
@@ -16,6 +17,7 @@ export function createStandaloneCatalog({
   }),
 } = {}) {
   return createApplicationCatalog({
+    streetLevelKeylessFirst,
     nepalBoundaryResolver,
     surface,
     sources: createStandaloneLayerSources(sources),

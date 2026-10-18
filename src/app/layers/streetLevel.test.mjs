@@ -72,3 +72,25 @@ test('the defaults are Mapillary (given its source), Street View, KartaView and 
   // Without the application's Street Level source there are none.
   assert.deepEqual(createApplicationStreetLevel({}).providerIds, []);
 });
+
+test('without a Mapillary token, a host can start on KartaView (keyless) and keep the others switchable', () => {
+  const mapillary = {
+    getStatus() {},
+    getTile() {},
+    getSequenceImages() {},
+    nearestImages() {},
+  };
+  const layer = createApplicationStreetLevel({
+    sources: { mapillary },
+    keylessFirst: true,
+  });
+  assert.deepEqual(layer.providerIds, [
+    'kartaview',
+    'panoramax',
+    'mapillary',
+    'google',
+  ]);
+  assert.equal(layer.getParams().kartaview, true);
+  assert.equal(layer.getParams().mapillary, false);
+  assert.equal(layer.getParams().google, false);
+});

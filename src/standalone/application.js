@@ -21,6 +21,8 @@ export function createStandaloneApplication({
   voice = {},
   sources = {},
   streetLevelProviders,
+  // Street Level starts on a keyless provider (no Mapillary token).
+  streetLevelKeylessFirst = false,
   allowQaRegistration = false,
   startupFlight = true,
   providerSettings = true,
@@ -71,6 +73,7 @@ export function createStandaloneApplication({
       catalog = createStandaloneCatalog({
         sources,
         streetLevelProviders,
+        streetLevelKeylessFirst,
         nepalBoundaryResolver: (signal) =>
           scene.operations.annotationResolver.resolveRegionRingForQuery(
             'Nepal',

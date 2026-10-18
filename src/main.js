@@ -24,6 +24,9 @@ const application = createStandaloneApplication({
   startupFlight: !host,
   // Provider keys are configured on the engine server, not from the host page.
   providerSettings: !host,
+  // Without a Mapillary token, a development host build starts Street Level
+  // on KartaView (keyless) instead of a provider that cannot load.
+  streetLevelKeylessFirst: allLayers && !import.meta.env.MAPILLARY_CLIENT_TOKEN,
   // A host shows only layers and imagery whose licences it has verified
   // (src/ui/host/hostLicences.js), and never probes for Google 3D tokens.
   ...(host && !allLayers

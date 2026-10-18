@@ -11,6 +11,11 @@ import {
   aisStreamRows,
   newestAisPositionAt,
 } from './ais-store.js';
+import {
+  createDigitrafficFeed,
+  digitrafficFallbackEnabled,
+  DIGITRAFFIC_SOURCE,
+} from './digitraffic.js';
 // ---------------------------------------------------------------------------
 // AISStream live vessel cache state
 // ---------------------------------------------------------------------------
@@ -67,14 +72,24 @@ let _aisWebSocketImpl;
  *
  * AISStream does not support browser CORS and requires a private API key, so
  * the Vite server keeps one backend websocket open and exposes a same-origin
- * JSON snapshot to the Cesium layer.
+ * JSON snapshot to the Cesium layer. Without a key, and with
+ * AIS_FALLBACK=digitraffic, the keyless Fintraffic Digitraffic feed (Finnish
+ * coastal AIS, CC BY 4.0) fills the same cache instead (./digitraffic.js).
  */
+let _digitrafficFeed = null;
+const useDigitraffic = () =>
+  !process.env.AISSTREAM_API_KEY && digitrafficFallbackEnabled();
+
 export function aisLiveProxy() {
   function install(middlewares) {
     middlewares.use('/api/vessels', async (req, res) => {
       try {
-        res.setHeader('X-Feed-Source', 'AISStream');
-        ensureAisStreamConnection();
+        const fallback = useDigitraffic();
+        res.setHeader('X-Feed-Source', fallback ? 'Digitraffic' : 'AISStream');
+        if (fallback) {
+          _digitrafficFeed ??= createDigitrafficFeed();
+          await _digitrafficFeed.refresh();
+        } else ensureAisStreamConnection();
         const incoming = new URL(req.url || '', 'http://localhost');
 
         // Track sub-route MUST be handled before the rows snapshot — this
@@ -101,7 +116,7 @@ export function aisLiveProxy() {
             JSON.stringify({
               mmsi,
               samples: readAisTrack(mmsi),
-              source: 'AISStream (accumulated since server start)',
+              source: `${fallback ? DIGITRAFFIC_SOURCE : 'AISStream'} (accumulated since server start)`,
               retainedSec: Math.floor(AISSTREAM_STALE_MS / 1000),
             }),
           );
@@ -116,15 +131,17 @@ export function aisLiveProxy() {
         );
         const rows = aisStreamRows(maxRows);
 
-        const feed = aisStreamStatusSnapshot();
+        const feed = fallback
+          ? _digitrafficFeed.snapshot()
+          : aisStreamStatusSnapshot();
 
-        res.statusCode = process.env.AISSTREAM_API_KEY ? 200 : 503;
+        res.statusCode = process.env.AISSTREAM_API_KEY || fallback ? 200 : 503;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('Cache-Control', 'no-store');
         res.end(
           JSON.stringify({
             rows,
-            source: 'AISStream',
+            source: fallback ? DIGITRAFFIC_SOURCE : 'AISStream',
             status: feed.status,
             error: feed.error,
             refreshing: feed.status !== 'live',

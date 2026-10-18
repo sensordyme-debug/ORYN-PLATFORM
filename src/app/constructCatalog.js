@@ -61,6 +61,7 @@ export function createApplicationCatalog({
   resolveAsset,
   nepalBoundaryResolver,
   streetLevelProviders,
+  streetLevelKeylessFirst = false,
 }) {
   if (!signal?.addEventListener)
     throw new TypeError('An application lifetime signal is required');
@@ -130,6 +131,7 @@ export function createApplicationCatalog({
         createApplicationStreetLevel({
           surface,
           sources: { mapillary: sources.mapillary },
+          keylessFirst: streetLevelKeylessFirst,
           providers: streetLevelProviders,
         }),
         satellites,

@@ -16,13 +16,23 @@ const googleApiKey = () => globalThis.window?.__GOOGLE_MAPS_API_KEY__ || null;
  * Mapillary, Google Street View, KartaView and Panoramax, once the Mapillary
  * source is supplied; else none.
  */
-function defaultProviders(sources) {
+/**
+ * Mapillary first (it starts on). With `keylessFirst` — no Mapillary token
+ * configured — KartaView starts on instead (keyless, worldwide coverage) and
+ * Panoramax follows; Mapillary and Google stay switchable.
+ */
+function defaultProviders(sources, { keylessFirst = false } = {}) {
   if (sources.mapillary == null) return [];
+  const mapillary = createMapillaryProvider({ source: sources.mapillary });
+  const google = createGoogleProvider({ getApiKey: googleApiKey });
+  const kartaview = createKartaViewProvider();
+  const panoramax = createPanoramaxProvider();
+  if (!keylessFirst) return [mapillary, google, kartaview, panoramax];
   return [
-    createMapillaryProvider({ source: sources.mapillary }),
-    createGoogleProvider({ getApiKey: googleApiKey }),
-    createKartaViewProvider(),
-    createPanoramaxProvider(),
+    Object.freeze({ ...kartaview, defaultOn: true }),
+    panoramax,
+    mapillary,
+    google,
   ];
 }
 
@@ -34,7 +44,8 @@ function defaultProviders(sources) {
 export function createApplicationStreetLevel({
   surface,
   sources = {},
-  providers = defaultProviders(sources),
+  keylessFirst = false,
+  providers = defaultProviders(sources, { keylessFirst }),
 }) {
   return createStreetLevelLayer({
     providers,

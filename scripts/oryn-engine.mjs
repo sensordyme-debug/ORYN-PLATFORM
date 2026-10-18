@@ -77,7 +77,11 @@ const env = {
   GEV_BASE_PATH: '/engine/',
   GEV_EMBED_FRAME_ANCESTORS: "'self'",
   ...(allLayers
-    ? { GEV_HOST_ALL_LAYERS: '1' }
+    ? {
+        GEV_HOST_ALL_LAYERS: '1',
+        // Without an AISStream key, ships come from the keyless Fintraffic Digitraffic feed.
+        AIS_FALLBACK: 'digitraffic',
+      }
     : {
         GEV_EXCLUDE_NONCOMMERCIAL: '1',
         GEV_FLIGHTS_SOURCE: 'adsb-lol',
