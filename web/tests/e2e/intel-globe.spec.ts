@@ -72,7 +72,7 @@ test("intelligence globe: God's Eye View engine inside the ORYN workspace, hones
   await expect(card.getByRole("heading", { name: "M3.1 4 km E of Globe Test" })).toBeVisible();
   // Earthquakes are observations; the card says so, with the USGS licence.
   await expect(card.getByText("Provider-reported observation", { exact: true })).toBeVisible();
-  await expect(card.getByText(/U.S. Geological Survey (U.S. public domain)/)).toBeVisible();
+  await expect(card.getByText("U.S. Geological Survey (U.S. public domain)", { exact: true })).toBeVisible();
   await expect(card.getByText("Retrieved by ORYN")).toBeVisible();
 
   // One click to the existing 2D map at the same place, and back.
@@ -84,12 +84,13 @@ test("intelligence globe: God's Eye View engine inside the ORYN workspace, hones
 });
 
 test("the geospatial engine is reachable only with an ORYN session", async ({ request }) => {
-  for (const path of ["/engine/index.html?host=oryn", "/engine/cesium/Cesium.js", "/api/cctv/sources", "/api/terrain/heights"]) {
+  for (const path of ["/engine/index.html?host=oryn", "/engine/cesium/Cesium.js", "/api/cctv/sources", "/api/firms"]) {
     expect((await request.get(path)).status()).toBe(401);
   }
   expect((await request.get("/engine/index.html?host=oryn", { headers: { Cookie: "oryn.session_token=forged.value" } })).status()).toBe(401);
-  // Engine routes that write configuration or start paid sessions are never forwarded.
-  for (const path of ["/api/setup/status", "/api/openai/hud-summary", "/api/realtime/token"]) {
+  // Engine routes that write configuration, start paid sessions, or that the
+  // ORYN build does not use (terrain: it renders an ellipsoid) are never forwarded.
+  for (const path of ["/api/setup/status", "/api/openai/hud-summary", "/api/realtime/token", "/api/terrain/heights"]) {
     expect((await request.get(path)).status()).toBe(404);
   }
 });
