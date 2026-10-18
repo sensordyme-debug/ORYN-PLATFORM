@@ -309,6 +309,8 @@ export type DetectionDetail = {
   run: { id: string; status: string; messages: string[]; parameters: Record<string, unknown>; outputs: Record<string, unknown>; software_version: string; started_at: Date } | null;
   createdAt: Date;
   relatedAlerts: { id: string; title: string; status: string; severity: string; created_at: Date }[];
+  /** Set when the detection came from a season comparison (src/server/comparisons). */
+  comparisonId: string | null;
   context: { warnings: { id: string; title: string; severity: string | null; event_start: Date | null; event_end: Date | null }[] };
   /** Organization reference features (permits, parcels, OSM infrastructure) intersecting the detection. */
   referenceMatches: ReferenceMatch[];
@@ -327,7 +329,7 @@ export async function getDetection(access: OrgAccess, id: string): Promise<Detec
         first_observed_at: Date; last_observed_at: Date; baseline_observation_id: string | null; comparison_observation_id: string | null;
         metrics: Record<string, unknown>; thresholds: Record<string, unknown>; evidence_grade: string; evidence_reasons: string[];
         limitations: string[]; verification_status: string; verification_note: string | null; verifier: string | null; verified_at: Date | null;
-        model_id: string | null; model_version: string | null; run_id: string | null; created_at: Date;
+        model_id: string | null; model_version: string | null; run_id: string | null; created_at: Date; comparison_id: string | null;
       }[]
     >`
       select d.id, d.aoi_id, a.name as aoi_name, d.type, d.result_class, d.title, ST_AsGeoJSON(d.geom, 7)::json as geometry,
@@ -335,7 +337,7 @@ export async function getDetection(access: OrgAccess, id: string): Promise<Detec
              ST_AsGeoJSON(ST_PointOnSurface(d.geom), 7)::json as centroid,
              d.area_m2, d.first_observed_at, d.last_observed_at, d.baseline_observation_id, d.comparison_observation_id,
              d.metrics, d.thresholds, d.evidence_grade, d.evidence_reasons, d.limitations, d.verification_status,
-             d.verification_note, u.name as verifier, d.verified_at, d.model_id, d.model_version, d.run_id, d.created_at
+             d.verification_note, u.name as verifier, d.verified_at, d.model_id, d.model_version, d.run_id, d.created_at, d.comparison_id
         from detections d join aois a on a.id = d.aoi_id left join auth_user u on u.id = d.verified_by
        where d.org_id = ${access.org.id} and d.id = ${id} ${aoiVisibleTo(tx, access)}`;
     if (!d) throw notFoundError("Detection");
@@ -390,6 +392,7 @@ export async function getDetection(access: OrgAccess, id: string): Promise<Detec
       run: run ?? null,
       createdAt: d.created_at,
       relatedAlerts,
+      comparisonId: d.comparison_id ?? null,
       context: { warnings },
       referenceMatches: matches,
       changeMap:

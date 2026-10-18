@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { api, ApiError, orgApi } from "@/components/map/api";
+import { ComparisonPanel } from "@/components/map/comparison-panel";
 import { NotesThread } from "@/components/map/notes";
 import { SeriesChart, type PrecipPoint, type SeriesPoint } from "@/components/map/series-chart";
 import type { Aoi, AoiAsset, AoiContext, DetectionFeatureProps, FC, Observation } from "@/components/map/types";
@@ -306,6 +307,10 @@ export function AoiInspector({
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {aoi.status === "active" ? (
+        <ComparisonPanel slug={slug} aoiId={aoi.id} canRun={perms.run} canReport={perms.reports} timeZone={timeZone} onSelectDetection={onSelectDetection} />
       ) : null}
 
       {context ? <ContextSection context={context} timeZone={timeZone} /> : null}

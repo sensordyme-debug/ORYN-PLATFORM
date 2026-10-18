@@ -103,6 +103,7 @@ export function DetectionInspector({
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {[d.baseline, d.comparison].some((o) => isFixtureProvider(o?.asset.providerId)) ? <FixtureBadge /> : null}
+            {d.comparisonId ? <Badge tone="info" title="Found by a season comparison of two periods">Season comparison</Badge> : null}
             <ResultClassBadge resultClass={d.resultClass} verified={d.verificationStatus === "confirmed"} />
             <Badge tone={EVIDENCE_TONE[d.evidenceGrade]}>Evidence: {d.evidenceGrade}</Badge>
             <Badge tone={VERIFICATION_TONE[d.verificationStatus]}>{d.verificationStatus.replace(/_/g, " ")}</Badge>
