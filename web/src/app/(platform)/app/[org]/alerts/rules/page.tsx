@@ -17,7 +17,7 @@ export default async function RulesPage(props: PageProps<"/app/[org]/alerts/rule
   const catalog = ruleCatalog(access.org.kind as never);
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow={<Link href={`/app/${org}/alerts`} className="hover:underline">Alerts</Link>} title="Alert rules" description="Rules are evaluated whenever new results arrive. A rule never fires on missing or insufficient data — it records why it could not evaluate instead." />
+      <PageHeader eyebrow={<Link href={`/app/${org}/alerts`} className="hover:underline">Alerts</Link>} title="Alert rules" description="Rules are evaluated when new results arrive, when a rule is created, edited or enabled, and every 6 hours. A rule never fires on missing or insufficient data — it records why it could not evaluate instead." />
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Panel bodyClassName="p-0">
           {rules.length === 0 ? <EmptyState title="No rules yet" className="m-4">Without rules, ORYN records results but raises no alerts.</EmptyState> : (

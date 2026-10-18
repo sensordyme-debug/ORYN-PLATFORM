@@ -115,7 +115,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
         <div className="flex flex-col gap-6">
           <Panel title="Open alerts" actions={<LinkButton size="sm" href={`/app/${org}/alerts`}>All alerts</LinkButton>} bodyClassName="p-0">
             {data.alerts.length === 0 ? (
-              <EmptyState title="No open alerts" className="m-4">{s.rules === 0 ? "No alert rules are configured yet." : "Rules are evaluated whenever new data is processed."}</EmptyState>
+              <EmptyState title="No open alerts" className="m-4">{s.rules === 0 ? "No alert rules are configured yet." : "Rules are evaluated when new data is processed, when a rule changes, and every 6 hours."}</EmptyState>
             ) : (
               <ul>
                 {data.alerts.map((a) => (
