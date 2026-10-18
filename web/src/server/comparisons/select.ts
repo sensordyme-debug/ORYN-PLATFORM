@@ -3,12 +3,19 @@
  *
  * Both images must be usable Sentinel-2 L2A NDVI observations on the SAME tile
  * and pixel grid, so the comparison never resamples and never mixes
- * acquisition geometries. Among the grids present in both windows, the pair
- * whose less-clear image is clearest wins (ties: the larger total clear
- * fraction, then the comparison image acquired later). Every image considered
- * gets a recorded decision and the reason for it.
+ * acquisition geometries. On each grid the comparison image is the clearest
+ * (ties: the later one); the baseline is, among images within
+ * CLEAR_TOLERANCE of the clearest baseline, the one closest in the season to
+ * the comparison image (a few days of phenology matter more for NDVI than a
+ * fraction of a percent of cloud). Across grids, the pair whose less-clear
+ * image is clearest wins. Every image considered gets a recorded decision and
+ * the reason for it.
  */
 import type { Outcome } from "./outcomes";
+import { seasonalOffsetDays } from "./periods";
+
+/** Baseline images this close to the clearest one count as equally clear. */
+export const CLEAR_TOLERANCE = 0.02;
 
 export type Candidate = {
   observationId: string | null;
@@ -33,7 +40,8 @@ export type Selection =
   | { ok: true; baseline: Candidate; comparison: Candidate; grid: { gridCode: string | null; epsg: number | null }; decisions: { baseline: Decision[]; comparison: Decision[] } }
   | { ok: false; outcome: Outcome; detail: string; decisions: { baseline: Decision[]; comparison: Decision[] } };
 
-const pct = (f: number | null) => (f === null ? "unknown" : `${Math.round(f * 100)}%`);
+const pct = (f: number | null) => (f === null ? "unknown" : `${(Math.round(f * 1000) / 10).toFixed(1)}%`);
+const daysText = (n: number | null) => `${n} day${n === 1 ? "" : "s"}`;
 const gridKey = (c: Candidate) => `${c.gridCode ?? "?"}|${c.epsg ?? "?"}`;
 const gridLabel = (c: Pick<Candidate, "gridCode" | "epsg">) => `tile ${c.gridCode ?? "unknown"} (EPSG:${c.epsg ?? "?"})`;
 const usable = (c: Candidate) => c.status === "valid" && c.observationId !== null;
@@ -51,8 +59,12 @@ export function selectPair(baseline: Candidate[], comparison: Candidate[]): Sele
   let pair: { b: Candidate; c: Candidate } | null = null;
   for (const key of grids) {
     const c = best(validC.filter((x) => gridKey(x) === key), (x, y) => y.acquiredAt.getTime() - x.acquiredAt.getTime());
-    const b = best(validB.filter((x) => gridKey(x) === key), (x, y) => y.acquiredAt.getTime() - x.acquiredAt.getTime());
-    if (!c || !b) continue;
+    if (!c) continue;
+    const onGrid = validB.filter((x) => gridKey(x) === key);
+    const top = Math.max(...onGrid.map(clear));
+    const offset = (x: Candidate) => seasonalOffsetDays(x.acquiredAt, c.acquiredAt);
+    const b = [...onGrid.filter((x) => clear(x) >= top - CLEAR_TOLERANCE)].sort((x, y) => offset(x) - offset(y) || clear(y) - clear(x))[0];
+    if (!b) continue;
     const score = Math.min(clear(b), clear(c));
     const prev = pair ? Math.min(clear(pair.b), clear(pair.c)) : -1;
     if (
@@ -65,18 +77,31 @@ export function selectPair(baseline: Candidate[], comparison: Candidate[]): Sele
     }
   }
 
-  const decide = (list: Candidate[], chosen: Candidate | null): Decision[] =>
+  const decide = (list: Candidate[], chosen: Candidate | null, seasonRef: Candidate | null = null): Decision[] =>
     [...list]
       .sort((a, b) => a.acquiredAt.getTime() - b.acquiredAt.getTime())
       .map((c) => {
         const base = { ...c, acquiredAt: c.acquiredAt.toISOString() };
+        const season = (x: Candidate) => (seasonRef ? seasonalOffsetDays(x.acquiredAt, seasonRef.acquiredAt) : null);
         if (chosen && c.assetId === chosen.assetId) {
-          return { ...base, decision: "chosen" as const, why: `Chosen: ${pct(c.clearFraction)} of the area clear, ${gridLabel(c)}.` };
+          const days = season(c);
+          return {
+            ...base,
+            decision: "chosen" as const,
+            why: `Chosen: ${pct(c.clearFraction)} of the area clear, ${gridLabel(c)}${days === null ? "" : `; ${daysText(days)} from the comparison image in the season`}.`,
+          };
         }
         if (c.status === "not_processed") return { ...base, decision: "not_chosen" as const, why: `Not analysed: ${c.reason ?? "no reason recorded"}` };
         if (c.status === "unusable") return { ...base, decision: "not_chosen" as const, why: `Unusable: ${c.reason ?? "too few clear pixels over the area"}` };
         if (chosen && gridKey(c) !== gridKey(chosen)) {
           return { ...base, decision: "not_chosen" as const, why: `Usable, but on ${gridLabel(c)}; the comparison uses ${gridLabel(chosen)} so both images share one pixel grid.` };
+        }
+        if (chosen && seasonRef && clear(c) >= clear(chosen) - CLEAR_TOLERANCE) {
+          return {
+            ...base,
+            decision: "not_chosen" as const,
+            why: `Usable and about as clear (${pct(c.clearFraction)}), but ${daysText(season(c))} from the comparison image in the season; the chosen image is ${daysText(season(chosen))}.`,
+          };
         }
         if (chosen) return { ...base, decision: "not_chosen" as const, why: `Usable, ${pct(c.clearFraction)} clear; the chosen image is clearer (${pct(chosen.clearFraction)}).` };
         return { ...base, decision: "not_chosen" as const, why: `Usable, ${pct(c.clearFraction)} clear, ${gridLabel(c)}; no comparable image in the other period.` };
@@ -88,7 +113,7 @@ export function selectPair(baseline: Candidate[], comparison: Candidate[]): Sele
       baseline: pair.b,
       comparison: pair.c,
       grid: { gridCode: pair.c.gridCode, epsg: pair.c.epsg },
-      decisions: { baseline: decide(baseline, pair.b), comparison: decide(comparison, pair.c) },
+      decisions: { baseline: decide(baseline, pair.b, pair.c), comparison: decide(comparison, pair.c) },
     };
   }
   const decisions = { baseline: decide(baseline, null), comparison: decide(comparison, null) };

@@ -75,6 +75,23 @@ describe("choosing the image pair", () => {
     expect(s.decisions.comparison.find((d) => d.externalId === "C2")!.why).toMatch(/^Not analysed: scene cloud 80%/);
   });
 
+  it("among equally clear baselines, takes the one closest in the season to the comparison image", () => {
+    const s = selectPair(
+      [
+        cand({ id: "B-early", at: "2025-09-03", clearFraction: 0.998 }),
+        cand({ id: "B-close", at: "2025-09-10", clearFraction: 0.985 }),
+        cand({ id: "B-closest-but-cloudy", at: "2025-09-11", clearFraction: 0.9 }),
+      ],
+      [cand({ id: "C", at: "2026-09-11", clearFraction: 0.998 })],
+    );
+    expect(s.ok && s.baseline.externalId).toBe("B-close");
+    if (!s.ok) return;
+    const why = Object.fromEntries(s.decisions.baseline.map((d) => [d.externalId, d.why]));
+    expect(why["B-close"]).toBe("Chosen: 98.5% of the area clear, tile MGRS-18STE (EPSG:32618); 1 day from the comparison image in the season.");
+    expect(why["B-early"]).toBe("Usable and about as clear (99.8%), but 8 days from the comparison image in the season; the chosen image is 1 day.");
+    expect(why["B-closest-but-cloudy"]).toBe("Usable, 90.0% clear; the chosen image is clearer (98.5%).");
+  });
+
   it("never pairs images from different grids", () => {
     const s = selectPair([cand({ id: "B", at: "2025-09-05", gridCode: "MGRS-17SQV", epsg: 32617 })], [cand({ id: "C", at: "2026-09-05" })]);
     expect(s).toMatchObject({ ok: false, outcome: "incompatible_tiles" });
