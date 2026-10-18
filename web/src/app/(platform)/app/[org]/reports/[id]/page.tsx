@@ -46,7 +46,7 @@ export default async function ReportPage(props: PageProps<"/app/[org]/reports/[i
                     ["Comparison period", `${c.comparison.periods.comparison.from} – ${c.comparison.periods.comparison.to}`],
                     ...([c.comparison.images.baseline, c.comparison.images.comparison].filter(Boolean).map((i) => [
                       i!.role === "baseline" ? "Baseline image" : "Comparison image",
-                      `${i!.external_id} · ${formatDateTime(i!.acquired_at, tz)} · ${i!.clear_fraction === null ? "—" : Math.round(i!.clear_fraction * 100)}% clear`,
+                      `${i!.external_id} · ${formatDateTime(i!.acquired_at, tz)} · ${i!.clear_fraction === null ? "clear fraction unknown" : `${(Math.round(i!.clear_fraction * 1000) / 10).toFixed(1)}% clear`}`,
                     ]) as [string, string][]),
                     ["Thresholds", `NDVI change ≥ ${c.comparison.method.threshold} over ≥ ${c.comparison.method.min_area_m2.toLocaleString("en-US")} m²`],
                   ]}
