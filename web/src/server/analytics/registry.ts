@@ -155,6 +155,24 @@ export const ANALYTICS = {
       "Different relative orbits or acquisition geometry can shift pixel values; registration error between dates is typically under one pixel for same-tile Sentinel-2 products but is not zero.",
     ],
   },
+  "ndvi-period-change": {
+    id: "ndvi-period-change",
+    version: "1.0.0",
+    name: "Season comparison: vegetation change candidates",
+    resultClass: "candidate_change",
+    description:
+      "Compares two user-selected, season-matched periods of one AOI: a whole number of years apart, the later starting within 31 days of the same calendar date. In each period the clearest usable Sentinel-2 L2A NDVI observation is chosen, and both must share one tile and pixel grid (no resampling, no other sensor). Pixels valid in both whose NDVI changed by at least the threshold (0.20) are grouped into 4-connected regions; regions of at least 2,000 m² become candidate changes. Evidence grades use the seasonal offset between the two images instead of the days between them.",
+    inputContract: { inputs: "two current Sentinel-2 L2A NDVI observations, one per period, same tile and grid", parameters: ["threshold", "min_area_m2", "baseline period", "comparison period"] },
+    outputSchema: { detections: ["geometry", "area_m2", "mean_delta", "direction", "pixel_count", "valid_overlap_fraction"] },
+    limitations: [
+      "A candidate is not a confirmed real-world change and does not say what changed; it requires review, usually a field check.",
+      "Season-matched images still differ by crop rotation, planting and harvest dates, drought, irrigation, mowing, and residual cloud or shadow.",
+      "Sentinel-2 pixels are 10 m: regions smaller than 2,000 m² (20 pixels) are not reported, and edges are uncertain by up to one pixel.",
+      "Only the part of the area covered by the chosen tile and clear in both images is compared; the covered share is stated.",
+      "No accuracy figure is claimed: ORYN has no ground-truth validation for this method.",
+      S2_MASK_NOTE,
+    ],
+  },
   "water-change": {
     id: "water-change",
     version: "1.1.0",

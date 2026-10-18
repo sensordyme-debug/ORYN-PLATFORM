@@ -29,7 +29,7 @@ export const MIN_AREA_M2 = 2_000;
 const MIN_OVERLAP = 0.3;
 const MAX_BASELINE_DAYS = 400;
 
-type ObsRow = {
+export type ObsRow = {
   id: string;
   kind: string;
   status: string;
@@ -55,6 +55,12 @@ export function gradeEvidence(input: {
   overlap: number;
   sameGrid: boolean;
   daysBetween: number;
+  /**
+   * Season comparisons (src/server/comparisons): days between the two images
+   * within the season after removing whole years. When given, it replaces the
+   * days-between rule, which would otherwise call any year-apart pair weak.
+   */
+  seasonalOffsetDays?: number;
   maskedBefore: number;
   maskedAfter: number;
 }): { grade: Grade; reasons: string[] } {
@@ -74,7 +80,16 @@ export function gradeEvidence(input: {
     grade = minGrade(grade, "moderate");
     reasons.push("The images were on different pixel grids and one was resampled; edges may be offset by up to one pixel.");
   }
-  if (input.daysBetween > 180) {
+  if (input.seasonalOffsetDays !== undefined) {
+    const off = input.seasonalOffsetDays;
+    if (off > 30) {
+      grade = minGrade(grade, "weak");
+      reasons.push(`The images are ${off} days apart in the season; seasonal differences likely contribute.`);
+    } else if (off > 15) {
+      grade = minGrade(grade, "moderate");
+      reasons.push(`The images are ${off} days apart in the season; some seasonal difference is possible.`);
+    } else reasons.push(`Season-matched: the images are ${off} days apart in the season (${input.daysBetween} days apart in all).`);
+  } else if (input.daysBetween > 180) {
     grade = minGrade(grade, "weak");
     reasons.push(`${input.daysBetween} days separate the images; seasonal change likely contributes.`);
   } else if (input.daysBetween > 60) {
@@ -102,7 +117,7 @@ function readF32(buf: Buffer): Float32Array {
   return new Float32Array(copy.buffer);
 }
 
-function toGrid(r: RasterRef): Grid {
+export function toGrid(r: RasterRef): Grid {
   return { width: r.width, height: r.height, epsg: r.epsg, transform: r.transform };
 }
 
@@ -112,7 +127,26 @@ async function loadGrid(r: RasterRef) {
   return { values: readF32(data.body), inside: mask ? new Uint8Array(mask.body) : null };
 }
 
-function titleFor(kind: "ndvi" | "water", c: ChangeCandidate, orgKind: string): { type: string; title: string } {
+/**
+ * Load two stored grids for comparison and put the baseline on the newer
+ * image's grid (identity when they share it). The AOI mask is the
+ * intersection of both masks. Callers check the CRS first.
+ */
+export async function loadAlignedPair(after: ObsRow & { raster: RasterRef }, before: ObsRow & { raster: RasterRef }) {
+  const gA = toGrid(after.raster);
+  const gB = toGrid(before.raster);
+  const [a, b] = await Promise.all([loadGrid(after.raster), loadGrid(before.raster)]);
+  const aligned = sameGrid(gA, gB);
+  const bValues = aligned ? b.values : alignToGrid(b.values, gB, gA);
+  const bInside = b.inside ? (aligned ? b.inside : Uint8Array.from(alignToGrid(Float32Array.from(b.inside), gB, gA), (v) => (v >= 0.5 ? 1 : 0))) : null;
+  const n = gA.width * gA.height;
+  const inside = new Uint8Array(n);
+  for (let i = 0; i < n; i++) inside[i] = (a.inside ? a.inside[i]! : 1) && (bInside ? bInside[i]! : 1) ? 1 : 0;
+  const daysBetween = Math.round((after.observed_at.getTime() - before.observed_at.getTime()) / 86_400_000);
+  return { grid: gA, after: a.values, before: bValues, inside, aligned, daysBetween, n };
+}
+
+export function titleFor(kind: "ndvi" | "water", c: ChangeCandidate, orgKind: string): { type: string; title: string } {
   const ha = (c.metrics.area_m2 / 10_000).toFixed(c.metrics.area_m2 >= 100_000 ? 0 : 1);
   if (kind === "water") return { type: "new_water_candidate", title: `Possible new surface water, ${ha} ha` };
   const d = c.metrics.mean_delta ?? 0;
@@ -213,14 +247,10 @@ export async function changeDetectionHandler(ctx: JobContext): Promise<unknown> 
   }
 
   await ctx.progress({ step: "comparing", baseline: before.id });
-  const [a, b] = await Promise.all([loadGrid(after.raster), loadGrid(before.raster)]);
-  const aligned = sameGrid(gA, gB);
-  const bValues = aligned ? b.values : alignToGrid(b.values, gB, gA);
-  const bInside = b.inside ? (aligned ? b.inside : Uint8Array.from(alignToGrid(Float32Array.from(b.inside), gB, gA), (v) => (v >= 0.5 ? 1 : 0))) : null;
-  const n = gA.width * gA.height;
-  const inside = new Uint8Array(n);
-  for (let i = 0; i < n; i++) inside[i] = (a.inside ? a.inside[i]! : 1) && (bInside ? bInside[i]! : 1) ? 1 : 0;
-  const daysBetween = Math.round((after.observed_at.getTime() - before.observed_at.getTime()) / 86_400_000);
+  const pair = await loadAlignedPair({ ...after, raster: after.raster }, { ...before, raster: before.raster });
+  const { aligned, inside, daysBetween, n } = pair;
+  const a = { values: pair.after };
+  const bValues = pair.before;
 
   let candidates: ChangeCandidate[];
   let overlap: number;

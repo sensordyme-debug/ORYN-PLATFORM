@@ -27,6 +27,10 @@ export const JOB = {
   retentionPurge: "retention.purge",
   /** Probe provider endpoints and record health. */
   providerHealth: "provider.health_check",
+  /** Season comparison: search both periods and queue their images for analysis. */
+  comparisonPrepare: "comparison.prepare",
+  /** Season comparison: once the images are analysed, choose the pair and compare it. */
+  comparisonCompare: "comparison.compare",
 } as const;
 
 export type JobType = (typeof JOB)[keyof typeof JOB];

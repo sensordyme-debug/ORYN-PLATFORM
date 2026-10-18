@@ -4,6 +4,7 @@
  * dropped).
  */
 import { ALERT_HANDLERS } from "@/server/alerts/handlers";
+import { COMPARISON_HANDLERS } from "@/server/comparisons/handlers";
 import { EXPORT_HANDLERS } from "@/server/exports/handlers";
 import { JOB } from "@/server/jobs/types";
 import type { HandlerRegistry, JobHandler } from "@/server/jobs/worker";
@@ -27,7 +28,7 @@ const PIPELINE: JobHandler[] = [
 ];
 
 export function buildRegistry(): HandlerRegistry {
-  const all = [...PIPELINE, ...ALERT_HANDLERS, ...REPORT_HANDLERS, ...EXPORT_HANDLERS, retentionPurgeHandler];
+  const all = [...PIPELINE, ...ALERT_HANDLERS, ...REPORT_HANDLERS, ...EXPORT_HANDLERS, ...COMPARISON_HANDLERS, retentionPurgeHandler];
   const map = new Map<string, JobHandler>();
   for (const h of all) {
     if (map.has(h.type)) throw new Error(`Duplicate job handler for ${h.type}`);

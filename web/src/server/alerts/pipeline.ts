@@ -329,6 +329,8 @@ export async function loadEvaluationData(tx: Tx, input: EvaluateAlertsInput, now
            (select max(s.first_seen_at) from source_assets s where s.id = any(d.source_asset_ids)) as ingested_at
       from detections d
      where d.org_id = ${orgId} and d.aoi_id = ${aoiId}
+       -- Season-comparison findings are requested analyses, not monitoring: never alerted.
+       and d.comparison_id is null
        and ${detectionIds ? tx`d.id = any(${detectionIds}::uuid[])` : tx`d.created_at >= ${now}::timestamptz - make_interval(days => ${DETECTION_LOOKBACK_DAYS})`}
      order by d.created_at, d.id`;
 
