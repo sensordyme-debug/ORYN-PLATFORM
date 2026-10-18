@@ -21,15 +21,15 @@ export default async function RulesPage(props: PageProps<"/app/[org]/alerts/rule
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Panel bodyClassName="p-0">
           {rules.length === 0 ? <EmptyState title="No rules yet" className="m-4">Without rules, ORYN records results but raises no alerts.</EmptyState> : (
-            <Table>
+            <Table label="Alert rules">
               <thead><tr><th className={th}>Rule</th><th className={th}>Applies to</th><th className={th}>Severity</th><th className={th}>Parameters</th><th className={th} /></tr></thead>
               <tbody>
                 {rules.map((r) => (
                   <tr key={r.id} className={r.enabled ? undefined : "opacity-50"}>
-                    <td className={td}><span className="font-medium">{r.name}</span><span className="block text-[0.75rem] text-bone-50/45">{catalog.find((c) => c.type === r.ruleType)?.label ?? r.ruleType}{r.enabled ? "" : " · disabled"}</span></td>
+                    <td className={td}><span className="font-medium">{r.name}</span><span className="block text-[0.75rem] text-bone-50/55">{catalog.find((c) => c.type === r.ruleType)?.label ?? r.ruleType}{r.enabled ? "" : " · disabled"}</span></td>
                     <td className={td}>{r.aoiName ?? "All areas"}</td>
                     <td className={td}><Badge tone={SEVERITY_TONE[r.severity] ?? "neutral"}>{r.severity}</Badge></td>
-                    <td className={td}><code className="text-[0.6875rem] text-bone-50/65">{JSON.stringify(r.params)}</code><span className="block text-[0.6875rem] text-bone-50/40">cooldown {r.cooldownHours} h{r.escalateAfterHours ? ` · escalate after ${r.escalateAfterHours} h` : ""}{r.notifyEmail ? " · email" : ""}</span></td>
+                    <td className={td}><code className="text-[0.6875rem] text-bone-50/65">{JSON.stringify(r.params)}</code><span className="block text-[0.6875rem] text-bone-50/55">cooldown {r.cooldownHours} h{r.escalateAfterHours ? ` · escalate after ${r.escalateAfterHours} h` : ""}{r.notifyEmail ? " · email" : ""}</span></td>
                     <td className={td}>{manage ? <RuleControls slug={org} ruleId={r.id} enabled={r.enabled} /> : null}</td>
                   </tr>
                 ))}

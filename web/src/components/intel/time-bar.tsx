@@ -68,7 +68,7 @@ export function TimeBar({ scene, timeZone }: { scene: GlobeScene; timeZone: stri
         </select>
       </label>
       <span className="t-mono text-bone-50/85" aria-live="off">{formatDateTime(new Date(t), timeZone)}</span>
-      <span className="text-bone-50/45">({offsetLabel})</span>
+      <span className="text-bone-50/55">({offsetLabel})</span>
       <input
         type="range"
         aria-label="Shown time"

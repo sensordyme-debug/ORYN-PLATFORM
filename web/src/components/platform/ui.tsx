@@ -74,7 +74,7 @@ const toneClass: Record<Tone, string> = {
   watch: "border-data-amber/40 text-data-amber",
   alert: "border-data-alert/45 text-data-alert",
   signal: "border-signal/45 text-signal",
-  muted: "border-bone-50/10 text-bone-50/45",
+  muted: "border-bone-50/10 text-bone-50/55",
 };
 
 export function Badge({ tone = "neutral", children, className, title }: { tone?: Tone; children: ReactNode; className?: string; title?: string }) {
@@ -206,7 +206,7 @@ export function LinkButton({
 }
 
 export const inputClass =
-  "w-full rounded-[3px] border border-bone-50/15 bg-ink-950 px-2.5 py-1.5 text-[0.875rem] text-bone-50 placeholder:text-bone-50/30 focus:border-bone-50/50 focus:outline-none disabled:opacity-50";
+  "w-full rounded-[3px] border border-bone-50/15 bg-ink-950 px-2.5 py-1.5 text-[0.875rem] text-bone-50 placeholder:text-bone-50/50 focus:border-bone-50/50 focus:outline-none disabled:opacity-50";
 
 export function Field({ label, hint, error, children, htmlFor, className }: { label: ReactNode; hint?: ReactNode; error?: string; children: ReactNode; htmlFor?: string; className?: string }) {
   return (
@@ -220,20 +220,21 @@ export function Field({ label, hint, error, children, htmlFor, className }: { la
           {error}
         </p>
       ) : hint ? (
-        <p className="text-[0.75rem] text-bone-50/45">{hint}</p>
+        <p className="text-[0.75rem] text-bone-50/55">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-export function Table({ children, className }: { children: ReactNode; className?: string }) {
+/** A table that scrolls sideways on narrow screens; the scroll area takes keyboard focus so it can be scrolled without a pointer. */
+export function Table({ children, className, label = "Table" }: { children: ReactNode; className?: string; label?: string }) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    <div role="region" aria-label={label} tabIndex={0} className={cn("overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-signal", className)}>
       <table className="w-full border-collapse text-left text-[0.8125rem]">{children}</table>
     </div>
   );
 }
-export const th = "border-b border-bone-50/[0.08] px-3 py-2 font-normal t-eyebrow text-bone-50/45 whitespace-nowrap";
+export const th = "border-b border-bone-50/[0.08] px-3 py-2 font-normal t-eyebrow text-bone-50/60 whitespace-nowrap";
 export const td = "border-b border-bone-50/[0.05] px-3 py-2 align-top text-bone-50/85";
 
 /**

@@ -144,7 +144,7 @@ export function CameraCard({ slug, cam, timeZone, onClose }: { slug: string; cam
     <div className="flex flex-col gap-3 p-4 text-[0.8125rem]" aria-label="Camera details">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="t-eyebrow text-bone-50/45">{provider.name} · public camera</p>
+          <p className="t-eyebrow text-bone-50/55">{provider.name} · public camera</p>
           <h2 className="mt-1 text-[0.9375rem] font-medium">{cam.name}</h2>
         </div>
         <button aria-label="Close" onClick={onClose} className="p-1 text-bone-50/50 hover:text-bone-50"><X className="size-4" /></button>
@@ -159,7 +159,7 @@ export function CameraCard({ slug, cam, timeZone, onClose }: { slug: string; cam
           <p className="text-[0.6875rem]" aria-label="Stream status">
             {health ? (
               <span className={health.status === "online" ? "text-data-veg" : health.status === "offline" ? "text-data-amber" : "text-bone-50/60"}>
-                Stream {health.status === "online" ? "online" : health.status === "offline" ? "offline" : "status unknown"} — {health.message} <span className="text-bone-50/40">(checked {relativeTime(health.checkedAt)})</span>
+                Stream {health.status === "online" ? "online" : health.status === "offline" ? "offline" : "status unknown"} — {health.message} <span className="text-bone-50/55">(checked {relativeTime(health.checkedAt)})</span>
               </span>
             ) : healthError ? (
               <span className="text-data-amber">{healthError}</span>
@@ -193,7 +193,7 @@ export function CameraCard({ slug, cam, timeZone, onClose }: { slug: string; cam
       </dl>
       <p className="text-[0.75rem] text-bone-50/60">{NO_CAMERA_ANALYTICS.note}</p>
       <section aria-label="Limitations" className="text-[0.6875rem] text-bone-50/50">
-        <p className="t-eyebrow mb-1 text-bone-50/45">Terms and limitations</p>
+        <p className="t-eyebrow mb-1 text-bone-50/55">Terms and limitations</p>
         <ul className="list-disc pl-4">{provider.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="mt-1">
           {provider.attribution}{" "}

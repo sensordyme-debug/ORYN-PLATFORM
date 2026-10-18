@@ -114,7 +114,7 @@ export function EventInspector({
     <div className="flex flex-col gap-3 p-4 text-[0.8125rem]" aria-label="Public event details">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="t-eyebrow text-bone-50/45">{layer.name} · public record</p>
+          <p className="t-eyebrow text-bone-50/55">{layer.name} · public record</p>
           <h2 className="mt-1 text-[0.9375rem] font-medium">{p.title}</h2>
         </div>
         <button aria-label="Close" onClick={onClose} className="p-1 text-bone-50/50 hover:text-bone-50"><X className="size-4" /></button>
@@ -164,25 +164,25 @@ export function EventInspector({
       </div>
 
       <section aria-label="Nearby areas" className="flex flex-col gap-1">
-        <p className="t-eyebrow text-bone-50/45">Your areas within {NEARBY_KM[p.layer]} km</p>
-        {nearby.length === 0 ? <p className="text-[0.75rem] text-bone-50/45">None of your areas are this close.</p> : null}
+        <p className="t-eyebrow text-bone-50/55">Your areas within {NEARBY_KM[p.layer]} km</p>
+        {nearby.length === 0 ? <p className="text-[0.75rem] text-bone-50/55">None of your areas are this close.</p> : null}
         <ul>
           {nearby.map((a) => (
             <li key={a.id} className="flex items-center justify-between gap-2 border-b border-bone-50/[0.05] py-1 text-[0.75rem]">
               <button className="min-w-0 truncate text-left hover:underline" onClick={() => onSelectAoi(a.id)}>
-                {a.name} <span className="text-bone-50/45">· {a.overlaps ? "inside or touching the perimeter box" : `~${a.km.toFixed(a.km < 10 ? 1 : 0)} km`}</span>
+                {a.name} <span className="text-bone-50/55">· {a.overlaps ? "inside or touching the perimeter box" : `~${a.km.toFixed(a.km < 10 ? 1 : 0)} km`}</span>
               </button>
               {canNote ? <Button size="sm" variant="ghost" onClick={() => record(a.id, a.name)}>Add note</Button> : null}
             </li>
           ))}
         </ul>
-        {nearby.length ? <p className="text-[0.6875rem] text-bone-50/40">Distances are approximate (to each area&apos;s bounding box{p.layer === "nifc-wildfire-perimeters" ? ", and from the perimeter's box" : ""}).</p> : null}
+        {nearby.length ? <p className="text-[0.6875rem] text-bone-50/55">Distances are approximate (to each area&apos;s bounding box{p.layer === "nifc-wildfire-perimeters" ? ", and from the perimeter's box" : ""}).</p> : null}
         {noted ? <Notice tone="info">Recorded on “{noted}” as a note, labelled as a public record.</Notice> : null}
         {error ? <p role="alert" className="text-[0.75rem] text-data-amber">{error}</p> : null}
       </section>
 
       <section aria-label="Limitations" className="text-[0.6875rem] text-bone-50/50">
-        <p className="t-eyebrow mb-1 text-bone-50/45">Limitations</p>
+        <p className="t-eyebrow mb-1 text-bone-50/55">Limitations</p>
         <ul className="list-disc pl-4">
           {layer.limitations.map((l) => <li key={l}>{l}</li>)}
         </ul>

@@ -50,12 +50,12 @@ export default async function ProcessingPage(props: PageProps<"/app/[org]/proces
       </div>
       {problems.length ? (
         <Panel title="Needs attention" description="Jobs that failed permanently or exhausted their retries." bodyClassName="p-0">
-          <Table>
+          <Table label="Jobs that need attention">
             <thead><tr><th className={th}>Job</th><th className={th}>Status</th><th className={th}>Attempts</th><th className={th}>Last error</th><th className={th}>Finished</th><th className={th} /></tr></thead>
             <tbody>
               {problems.map((j) => (
                 <tr key={j.id}>
-                  <td className={td}>{JOB_LABEL[j.type] ?? j.type}<code className="block text-[0.6875rem] text-bone-50/40">{j.id.slice(0, 8)}</code></td>
+                  <td className={td}>{JOB_LABEL[j.type] ?? j.type}<code className="block text-[0.6875rem] text-bone-50/55">{j.id.slice(0, 8)}</code></td>
                   <td className={td}><Badge tone={STATUS_TONE[j.status]}>{j.status === "dead" ? "retries exhausted" : j.status}</Badge></td>
                   <td className={td}>{j.attempts}/{j.max_attempts}</td>
                   <td className={`${td} max-w-md text-data-alert/90`}>{j.last_error}</td>
@@ -71,7 +71,7 @@ export default async function ProcessingPage(props: PageProps<"/app/[org]/proces
         {active.length === 0 ? (
           <EmptyState title="Nothing queued or running" className="m-4" />
         ) : (
-          <Table>
+          <Table label="Jobs in progress">
             <thead><tr><th className={th}>Job</th><th className={th}>Status</th><th className={th}>Progress</th><th className={th}>Attempt</th><th className={th}>Queued</th><th className={th} /></tr></thead>
             <tbody>
               {active.map((j) => (
@@ -92,7 +92,7 @@ export default async function ProcessingPage(props: PageProps<"/app/[org]/proces
         {runs.length === 0 ? (
           <EmptyState title="No analyses yet" className="m-4">Runs appear when imagery is found for one of your areas.</EmptyState>
         ) : (
-          <Table>
+          <Table label="Analysis runs">
             <thead><tr><th className={th}>Area</th><th className={th}>Model</th><th className={th}>Outcome</th><th className={th}>Notes</th><th className={th}>Started</th></tr></thead>
             <tbody>
               {runs.map((r) => (
@@ -109,7 +109,7 @@ export default async function ProcessingPage(props: PageProps<"/app/[org]/proces
         )}
       </Panel>
       <Panel title="Recent jobs" bodyClassName="p-0">
-        <Table>
+        <Table label="Recent jobs">
           <thead><tr><th className={th}>Job</th><th className={th}>Status</th><th className={th}>Created</th><th className={th}>Finished</th></tr></thead>
           <tbody>
             {recent.map((j) => (

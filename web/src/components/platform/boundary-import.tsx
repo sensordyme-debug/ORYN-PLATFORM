@@ -57,7 +57,7 @@ export function BoundaryImport({ slug }: { slug: string }) {
         <div key={h.geoid} className="flex items-center justify-between gap-2 rounded-[3px] border border-bone-50/10 px-3 py-2 text-[0.8125rem]">
           <span>
             {h.name}
-            <span className="block text-[0.6875rem] text-bone-50/45">GEOID {h.geoid} · {h.kind.replace(/_/g, " ")}{h.areaLandM2 ? ` · land ${formatArea(h.areaLandM2)}` : ""}</span>
+            <span className="block text-[0.6875rem] text-bone-50/55">GEOID {h.geoid} · {h.kind.replace(/_/g, " ")}{h.areaLandM2 ? ` · land ${formatArea(h.areaLandM2)}` : ""}</span>
           </span>
           <Button
             size="sm"

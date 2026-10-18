@@ -22,7 +22,7 @@ function Head({ eyebrow, title, onClose }: { eyebrow: string; title: string; onC
   return (
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
-        <p className="t-eyebrow text-bone-50/45">{eyebrow}</p>
+        <p className="t-eyebrow text-bone-50/55">{eyebrow}</p>
         <h2 className="mt-1 text-[0.9375rem] font-medium">{title}</h2>
       </div>
       <button aria-label="Close" onClick={onClose} className="p-1 text-bone-50/50 hover:text-bone-50"><X className="size-4" /></button>
@@ -65,25 +65,25 @@ export function AoiCard({ slug, timeZone, aoi, onClose, onSelectSatellite }: { s
         <Link className="rounded-[3px] border border-bone-50/20 px-2 py-1 hover:border-bone-50/50" href={`/app/${slug}/areas/${aoi.id}`}>Area settings and history</Link>
       </div>
       <section aria-label="Upcoming imaging overpasses" className="flex flex-col gap-1">
-        <p className="t-eyebrow text-bone-50/45">Next imaging opportunities (3 days)</p>
+        <p className="t-eyebrow text-bone-50/55">Next imaging opportunities (3 days)</p>
         {error ? <p className="text-[0.75rem] text-data-amber">{error}</p> : null}
         {passes && passes.feed.state === "disabled" ? <p className="text-[0.75rem] text-bone-50/50">{passes.feed.message}</p> : null}
         {passes && passes.feed.state === "unavailable" ? <p className="text-[0.75rem] text-data-amber">{passes.feed.message}</p> : null}
-        {!passes && !error ? <p className="text-[0.75rem] text-bone-50/45">Computing…</p> : null}
+        {!passes && !error ? <p className="text-[0.75rem] text-bone-50/55">Computing…</p> : null}
         {passes && passes.passes.length === 0 && passes.feed.state !== "disabled" && passes.feed.state !== "unavailable" ? (
-          <p className="text-[0.75rem] text-bone-50/45">No overpasses within a swath in the next 3 days.</p>
+          <p className="text-[0.75rem] text-bone-50/55">No overpasses within a swath in the next 3 days.</p>
         ) : null}
         <ul className="text-[0.75rem]">
           {passes?.passes.slice(0, 8).map((p) => (
             <li key={`${p.noradId}-${p.time}`} className="flex items-center justify-between gap-2 border-b border-bone-50/[0.05] py-1">
               <button className="text-left hover:underline" onClick={() => onSelectSatellite(p.noradId)}>{p.name}</button>
               <span className="text-right text-bone-50/70">
-                {formatDateTime(p.time, timeZone)} <span className="text-bone-50/40">· {Math.round(p.distanceKm)} km off-track</span>
+                {formatDateTime(p.time, timeZone)} <span className="text-bone-50/55">· {Math.round(p.distanceKm)} km off-track</span>
               </span>
             </li>
           ))}
         </ul>
-        <p className="text-[0.6875rem] text-bone-50/40">
+        <p className="text-[0.6875rem] text-bone-50/55">
           Geometric overpasses from orbital elements: the place lies within half the swath. Whether the mission images it depends on its acquisition plan; optical images also need daylight and clear skies.
         </p>
       </section>
@@ -151,7 +151,7 @@ export function SatelliteCard({
         <input type="checkbox" checked={following} onChange={(e) => onFollow(e.target.checked)} /> Follow with the camera
       </label>
       <section aria-label="Limitations" className="text-[0.6875rem] text-bone-50/50">
-        <p className="t-eyebrow mb-1 text-bone-50/45">Limitations</p>
+        <p className="t-eyebrow mb-1 text-bone-50/55">Limitations</p>
         <ul className="list-disc pl-4">{SATELLITE_SOURCE.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="mt-1">{SATELLITE_SOURCE.attribution}. {SATELLITE_SOURCE.license}</p>
       </section>

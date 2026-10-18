@@ -29,7 +29,7 @@ export default async function AccountsAdminPage() {
         />
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
           <Panel title={`${accounts.length} accounts`} bodyClassName="p-0">
-            <Table>
+            <Table label="Accounts">
               <thead>
                 <tr>
                   <th className={th}>Account</th>
@@ -44,7 +44,7 @@ export default async function AccountsAdminPage() {
                   <tr key={a.id}>
                     <td className={td}>
                       <span className="font-medium">{a.displayUsername ?? a.email}</span>
-                      <span className="block text-[0.75rem] text-bone-50/45">{[a.name, a.displayUsername ? a.email : null].filter(Boolean).join(" · ")}</span>
+                      <span className="block text-[0.75rem] text-bone-50/55">{[a.name, a.displayUsername ? a.email : null].filter(Boolean).join(" · ")}</span>
                     </td>
                     <td className={td}>
                       <span className="flex flex-wrap gap-1">
@@ -55,7 +55,7 @@ export default async function AccountsAdminPage() {
                       </span>
                     </td>
                     <td className={td}>
-                      {a.memberships.length === 0 ? <span className="text-bone-50/45">None</span> : (
+                      {a.memberships.length === 0 ? <span className="text-bone-50/55">None</span> : (
                         <ul className="text-[0.75rem]">
                           {a.memberships.map((m) => (
                             <li key={m.slug}>{m.name}{m.isTrial ? " (trial)" : ""} — {ROLE_LABEL[m.role]}</li>
@@ -65,7 +65,7 @@ export default async function AccountsAdminPage() {
                     </td>
                     <td className={td}>
                       {a.activeSessions}
-                      {a.lastSessionAt ? <span className="block text-[0.6875rem] text-bone-50/45">last {formatDateTime(a.lastSessionAt)}</span> : null}
+                      {a.lastSessionAt ? <span className="block text-[0.6875rem] text-bone-50/55">last {formatDateTime(a.lastSessionAt)}</span> : null}
                     </td>
                     <td className={td}>
                       <AccountActions
@@ -94,10 +94,10 @@ export default async function AccountsAdminPage() {
                 {events.map((e) => (
                   <li key={e.id} className="px-4 py-2">
                     <span className="t-mono text-bone-50/80">{e.action}</span> {String(e.metadata.account ?? "")}
-                    <span className="block text-bone-50/45">{e.actor_label ?? "—"} · {formatDateTime(e.created_at)}</span>
+                    <span className="block text-bone-50/55">{e.actor_label ?? "—"} · {formatDateTime(e.created_at)}</span>
                   </li>
                 ))}
-                {events.length === 0 ? <li className="px-4 py-3 text-bone-50/45">No account changes recorded yet.</li> : null}
+                {events.length === 0 ? <li className="px-4 py-3 text-bone-50/55">No account changes recorded yet.</li> : null}
               </ul>
             </Panel>
           </div>

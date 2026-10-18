@@ -3,6 +3,7 @@ import { Badge, DataAge, EmptyState, LinkButton, PageHeader, Panel, Table, td, t
 import { AOI_KIND_LABEL } from "@/lib/aoi-config";
 import { formatNumber } from "@/lib/format";
 import { formatArea } from "@/lib/geo";
+import { orgProfile } from "@/lib/org-profile";
 import { aoiVisibleTo } from "@/server/aois/service";
 import { currentModelKeys } from "@/server/analytics/registry";
 import { getOrgPageAccess } from "@/server/authz/next";
@@ -30,12 +31,13 @@ export default async function AreasPage(props: PageProps<"/app/[org]/areas">) {
       from aois a left join aois p on p.id = a.parent_id
      where a.org_id = ${access.org.id} and a.status = ${status} ${aoiVisibleTo(tx, access)}
      order by coalesce(p.name, a.name), a.name`);
-  const isAg = access.org.kind === "agriculture";
+  const words = orgProfile(access.org.kind);
+  const isAg = words.fieldHealth;
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Monitoring"
-        title={isAg ? "Fields & farms" : "Areas of interest"}
+        title={words.areas}
         description="Every area is monitored on its own schedule. Data age shows how recent the latest usable satellite observation is — not how recently ORYN checked."
         actions={
           <>
@@ -47,10 +49,10 @@ export default async function AreasPage(props: PageProps<"/app/[org]/areas">) {
       <Panel bodyClassName="p-0">
         {rows.length === 0 ? (
           <EmptyState title={status === "active" ? "No areas yet" : "No archived areas"} className="m-4" action={access.can("aoi.write") && status === "active" ? <LinkButton href={`/app/${org}/areas/new`} variant="primary">Add the first area</LinkButton> : undefined}>
-            {isAg ? "Add field boundaries by drawing them, uploading GeoJSON, or importing them." : "Import your municipal boundary from the U.S. Census, upload GeoJSON, or draw areas on the map."}
+            {words.areasEmpty}
           </EmptyState>
         ) : (
-          <Table>
+          <Table label="Areas">
             <thead>
               <tr><th className={th}>Name</th><th className={th}>Type</th><th className={th}>Area</th><th className={th}>Latest usable data</th>{isAg ? <th className={th}>NDVI (mean)</th> : null}<th className={th}>Attention</th></tr>
             </thead>
@@ -59,13 +61,13 @@ export default async function AreasPage(props: PageProps<"/app/[org]/areas">) {
                 <tr key={r.id}>
                   <td className={td}>
                     <Link href={`/app/${org}/areas/${r.id}`} className="font-medium hover:underline">{r.name}</Link>
-                    <span className="block text-[0.75rem] text-bone-50/45">{[r.parent_name, r.crop].filter(Boolean).join(" · ")}</span>
+                    <span className="block text-[0.75rem] text-bone-50/55">{[r.parent_name, r.crop].filter(Boolean).join(" · ")}</span>
                     {r.is_synthetic ? <Badge tone="watch" className="mt-1">Synthetic boundary</Badge> : null}
                     {!r.monitoring_enabled && r.status === "active" ? <Badge tone="muted" className="ml-1 mt-1">Monitoring off</Badge> : null}
                   </td>
                   <td className={td}>{AOI_KIND_LABEL[r.kind] ?? r.kind}</td>
                   <td className={`${td} whitespace-nowrap`}>{formatArea(r.area_m2)}</td>
-                  <td className={td}>{r.latest_valid ? <DataAge at={r.latest_valid} /> : <span className="text-bone-50/45">None yet</span>}</td>
+                  <td className={td}>{r.latest_valid ? <DataAge at={r.latest_valid} /> : <span className="text-bone-50/55">None yet</span>}</td>
                   {isAg ? <td className={`${td} tabular-nums`}>{formatNumber(r.latest_ndvi, 2)}</td> : null}
                   <td className={td}>
                     <div className="flex flex-wrap gap-1">

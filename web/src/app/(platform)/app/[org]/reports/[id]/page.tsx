@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge, KeyValues, LinkButton, Notice, PageHeader, Panel } from "@/components/platform/ui";
 import { formatDateTime } from "@/lib/format";
-import { getOrgPageAccess } from "@/server/authz/next";
+import { getOrgPageAccess, getPageRecord } from "@/server/authz/next";
 import { getReport } from "@/server/reports/service";
 
 export const metadata = { title: "Report" };
@@ -11,7 +11,7 @@ const STATUS_TONE = { ok: "good", missing: "alert", stale: "watch", partial: "wa
 export default async function ReportPage(props: PageProps<"/app/[org]/reports/[id]">) {
   const { org, id } = await props.params;
   const access = await getOrgPageAccess(org);
-  const r = await getReport(access, id);
+  const r = await getPageRecord(getReport(access, id));
   const tz = access.org.settings.timezone ?? "UTC";
   const c = r.content;
   return (
@@ -55,7 +55,7 @@ export default async function ReportPage(props: PageProps<"/app/[org]/reports/[i
                   <ul className="flex flex-col gap-1">
                     {c.comparison.findings.map((f, i) => (
                       <li key={f.detection_id}>
-                        <span className="t-mono mr-2 text-[0.6875rem] text-bone-50/40">{i + 1}</span>
+                        <span className="t-mono mr-2 text-[0.6875rem] text-bone-50/55">{i + 1}</span>
                         <Link className="hover:underline" href={`/app/${org}/map?detection=${f.detection_id}`}>{f.title}</Link>
                         <span className="ml-2 text-[0.75rem] text-bone-50/50">evidence {f.evidence_grade} · {f.verification_status.replace(/_/g, " ")} [{f.evidence_id}]</span>
                       </li>
@@ -68,7 +68,7 @@ export default async function ReportPage(props: PageProps<"/app/[org]/reports/[i
           <Panel title="Findings" description="Every finding cites the stored records it comes from.">
             <ul className="flex flex-col gap-2 text-[0.8125rem]">
               {c.findings.map((f) => (
-                <li key={f.id}><span className="t-mono mr-2 text-[0.6875rem] text-bone-50/40">{f.id}</span>{f.text} <span className="text-[0.6875rem] text-bone-50/40">[{f.evidence_ids.join(", ")}]</span></li>
+                <li key={f.id}><span className="t-mono mr-2 text-[0.6875rem] text-bone-50/55">{f.id}</span>{f.text} <span className="text-[0.6875rem] text-bone-50/55">[{f.evidence_ids.join(", ")}]</span></li>
               ))}
             </ul>
           </Panel>

@@ -121,7 +121,7 @@ export function SeriesChart({
       {showTable ? (
         <div className="max-h-56 overflow-y-auto">
           <table className="w-full text-[0.6875rem]">
-            <thead className="text-bone-50/45"><tr><th className="text-left font-normal">Acquired</th><th className="text-right font-normal">Mean</th><th className="text-right font-normal">p10–p90</th><th className="text-right font-normal">Valid</th><th className="text-left font-normal pl-2">Source</th></tr></thead>
+            <thead className="text-bone-50/55"><tr><th className="text-left font-normal">Acquired</th><th className="text-right font-normal">Mean</th><th className="text-right font-normal">p10–p90</th><th className="text-right font-normal">Valid</th><th className="text-left font-normal pl-2">Source</th></tr></thead>
             <tbody>
               {[...sorted].reverse().map((p) => (
                 <tr key={p.id} className="text-bone-50/80">
@@ -199,7 +199,7 @@ export function SeriesChart({
           {dayPrecip.map((p) => (
             <p key={p.kind} className="mt-1 flex items-center gap-2 text-bone-50/75"><span className="inline-block h-0.5 w-3" style={{ background: PRECIP_COLOR }} /><span className="tabular-nums text-bone-50">{p.mm.toFixed(1)} mm</span> {p.kind.replace("_", " ")}</p>
           ))}
-          {onSelect ? <p className="mt-1 text-bone-50/40">Click to show on map</p> : null}
+          {onSelect ? <p className="mt-1 text-bone-50/55">Click to show on map</p> : null}
         </div>
       ) : null}
     </div>

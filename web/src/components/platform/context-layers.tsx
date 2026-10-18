@@ -28,7 +28,7 @@ export function OsmImportForm({ slug, aoiId }: { slug: string; aoiId: string }) 
           </label>
         ))}
       </div>
-      <p className="text-[0.75rem] text-bone-50/45">Data © OpenStreetMap contributors (ODbL). Imported for this area&apos;s bounding box; the import replaces an earlier one with the same categories.</p>
+      <p className="text-[0.75rem] text-bone-50/55">Data © OpenStreetMap contributors (ODbL). Imported for this area&apos;s bounding box; the import replaces an earlier one with the same categories.</p>
       <Button
         size="sm"
         className="self-start"

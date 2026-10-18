@@ -24,7 +24,7 @@ export function ObservationMeta({ o, timeZone, layer }: { o: Observation; timeZo
       {layer === "index" && o.legend ? <RasterLegend legend={o.legend} /> : null}
       <KeyValues
         items={[
-          ["Acquired", <span key="a">{formatDateTime(o.asset.acquiredAt, timeZone)} <span className="text-bone-50/45">({relativeTime(o.asset.acquiredAt)})</span></span>],
+          ["Acquired", <span key="a">{formatDateTime(o.asset.acquiredAt, timeZone)} <span className="text-bone-50/55">({relativeTime(o.asset.acquiredAt)})</span></span>],
           ["Available to ORYN", formatDateTime(o.asset.firstSeenAt, timeZone)],
           ["Processed", formatDateTime(o.processedAt, timeZone)],
           ["Source", `${o.asset.platform ?? ""} · ${o.asset.collection}`],

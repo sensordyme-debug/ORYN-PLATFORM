@@ -22,7 +22,7 @@ export default async function MembersPage(props: PageProps<"/app/[org]/settings/
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
       <div className="flex flex-col gap-6">
         <Panel title={`${members.length} members`} bodyClassName="p-0">
-          <Table>
+          <Table label="Members">
             <thead>
               <tr><th className={th}>Member</th><th className={th}>Role</th><th className={th}>Joined</th></tr>
             </thead>
@@ -59,7 +59,7 @@ export default async function MembersPage(props: PageProps<"/app/[org]/settings/
         </Panel>
         {manage && pending.length ? (
           <Panel title="Pending invitations" bodyClassName="p-0">
-            <Table>
+            <Table label="Pending invitations">
               <thead><tr><th className={th}>Email</th><th className={th}>Role</th><th className={th}>Expires</th><th className={th} /></tr></thead>
               <tbody>
                 {pending.map((i) => (

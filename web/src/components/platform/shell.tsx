@@ -129,7 +129,7 @@ export function PlatformShell({
           <div className="flex items-center gap-2 px-2">
             <Link href="/app/account" className="min-w-0 flex-1 rounded-[3px] hover:text-bone-50" title="Your account">
               <p className="truncate text-[0.8125rem]">{user.name}</p>
-              <p className="truncate text-[0.6875rem] text-bone-50/45">{user.handle}</p>
+              <p className="truncate text-[0.6875rem] text-bone-50/55">{user.handle}</p>
             </Link>
             <SignOut />
           </div>
@@ -182,7 +182,7 @@ function OrgSwitcher({ current, name, orgs, roleLabel }: { current: string; name
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.8125rem] font-medium">{name}</span>
-          <span className="block text-[0.6875rem] text-bone-50/45">{roleLabel}</span>
+          <span className="block text-[0.6875rem] text-bone-50/55">{roleLabel}</span>
         </span>
         <ChevronDown className="size-4 text-bone-50/50" aria-hidden="true" />
       </button>

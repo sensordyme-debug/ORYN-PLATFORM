@@ -3,7 +3,7 @@ import { AlertControls } from "@/components/platform/alert-controls";
 import { Badge, KeyValues, LinkButton, Notice, PageHeader, Panel, SEVERITY_TONE } from "@/components/platform/ui";
 import { formatDateTime } from "@/lib/format";
 import { getAlert } from "@/server/alerts/service";
-import { getOrgPageAccess } from "@/server/authz/next";
+import { getOrgPageAccess, getPageRecord } from "@/server/authz/next";
 import { listMembers } from "@/server/orgs/service";
 
 export const metadata = { title: "Alert" };
@@ -19,7 +19,7 @@ const BASIS_LABEL: Record<string, string> = {
 export default async function AlertPage(props: PageProps<"/app/[org]/alerts/[id]">) {
   const { org, id } = await props.params;
   const access = await getOrgPageAccess(org);
-  const a = await getAlert(access, id);
+  const a = await getPageRecord(getAlert(access, id));
   const tz = access.org.settings.timezone ?? "UTC";
   const members = access.can("alerts.respond") && access.can("members.read") ? (await listMembers(access)).filter((m) => ["org_admin", "analyst", "field_operator"].includes(m.role)) : [];
   const ex = a.explanation;
@@ -57,9 +57,9 @@ export default async function AlertPage(props: PageProps<"/app/[org]/alerts/[id]
             <ul className="flex flex-col gap-2 text-[0.8125rem]">
               {a.evidence.map((e) => (
                 <li key={`${e.type}-${e.id}`} className="rounded-[3px] border border-bone-50/[0.07] px-3 py-2">
-                  <span className="t-mono mr-2 text-[0.6875rem] uppercase text-bone-50/45">{e.type.replace(/_/g, " ")}</span>
+                  <span className="t-mono mr-2 text-[0.6875rem] uppercase text-bone-50/55">{e.type.replace(/_/g, " ")}</span>
                   {e.type === "detection" ? <Link className="hover:underline" href={`/app/${org}/map?detection=${e.id}`}>{e.label}</Link> : e.type === "observation" ? <Link className="hover:underline" href={`/app/${org}/map?aoi=${a.aoiId}&obs=${e.id}`}>{e.label}</Link> : e.label}
-                  {e.observed_at ? <span className="block text-[0.75rem] text-bone-50/45">acquired/valid {formatDateTime(e.observed_at, tz)}</span> : null}
+                  {e.observed_at ? <span className="block text-[0.75rem] text-bone-50/55">acquired/valid {formatDateTime(e.observed_at, tz)}</span> : null}
                   {e.records.length === 0 ? <span className="block text-[0.75rem] text-data-amber">The underlying record is no longer stored (retention).</span> : null}
                 </li>
               ))}
@@ -90,10 +90,10 @@ export default async function AlertPage(props: PageProps<"/app/[org]/alerts/[id]
           <Panel title="History">
             <ul className="flex flex-col gap-2 text-[0.75rem]">
               {a.events.map((e) => (
-                <li key={e.id}><span className="text-bone-50/85">{e.action.replace(/_/g, " ")}</span>{e.note ? ` — ${e.note}` : ""}<span className="block text-bone-50/45">{e.actorName ?? "System"} · {formatDateTime(e.createdAt, tz)}</span></li>
+                <li key={e.id}><span className="text-bone-50/85">{e.action.replace(/_/g, " ")}</span>{e.note ? ` — ${e.note}` : ""}<span className="block text-bone-50/55">{e.actorName ?? "System"} · {formatDateTime(e.createdAt, tz)}</span></li>
               ))}
               {a.notes.map((n) => (
-                <li key={n.id}><span className="text-bone-50/85">Note</span> — {n.body}<span className="block text-bone-50/45">{n.authorName ?? "—"} · {formatDateTime(n.createdAt, tz)}</span></li>
+                <li key={n.id}><span className="text-bone-50/85">Note</span> — {n.body}<span className="block text-bone-50/55">{n.authorName ?? "—"} · {formatDateTime(n.createdAt, tz)}</span></li>
               ))}
             </ul>
           </Panel>

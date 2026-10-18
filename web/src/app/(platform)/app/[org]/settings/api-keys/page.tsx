@@ -15,12 +15,12 @@ export default async function ApiKeysPage(props: PageProps<"/app/[org]/settings/
         {keys.length === 0 ? (
           <EmptyState title="No API keys" className="m-4">Create a key to read areas, results, and alerts from another system.</EmptyState>
         ) : (
-          <Table>
+          <Table label="API keys">
             <thead><tr><th className={th}>Name</th><th className={th}>Scopes</th><th className={th}>Last used</th><th className={th}>Expires</th><th className={th} /></tr></thead>
             <tbody>
               {keys.map((k) => (
                 <tr key={k.id} className={k.revokedAt ? "opacity-50" : undefined}>
-                  <td className={td}><span className="font-medium">{k.name}</span><code className="block text-[0.6875rem] text-bone-50/45">oryn_{k.prefix}_…</code></td>
+                  <td className={td}><span className="font-medium">{k.name}</span><code className="block text-[0.6875rem] text-bone-50/55">oryn_{k.prefix}_…</code></td>
                   <td className={td}><div className="flex flex-wrap gap-1">{k.scopes.map((s) => <Badge key={s} tone="muted">{s}</Badge>)}</div></td>
                   <td className={td}>{k.lastUsedAt ? relativeTime(k.lastUsedAt) : "Never"}</td>
                   <td className={td}>{k.revokedAt ? <Badge tone="alert">Revoked</Badge> : k.expiresAt ? formatDate(k.expiresAt) : "Never"}</td>

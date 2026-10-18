@@ -40,7 +40,7 @@ export default async function AlertsPage(props: PageProps<"/app/[org]/alerts">) 
                   <span>
                     {!n.readAt ? <span aria-label="unread" className="mr-2 inline-block size-1.5 rounded-full bg-signal align-middle" /> : null}
                     <Link className="hover:underline" href={`/app/${org}/alerts/${n.alertId}`}>{n.title}</Link>
-                    <span className="block text-[0.75rem] text-bone-50/45">{n.aoiName} · {n.reason === "escalated" ? "escalated · " : ""}{relativeTime(n.createdAt)}</span>
+                    <span className="block text-[0.75rem] text-bone-50/55">{n.aoiName} · {n.reason === "escalated" ? "escalated · " : ""}{relativeTime(n.createdAt)}</span>
                   </span>
                   <Badge tone={SEVERITY_TONE[n.severity] ?? "neutral"}>{n.severity}</Badge>
                 </li>
@@ -77,14 +77,14 @@ export default async function AlertsPage(props: PageProps<"/app/[org]/alerts">) 
         {items.length === 0 ? (
           <EmptyState title="No alerts here" className="m-4" />
         ) : (
-          <Table>
+          <Table label="Alerts">
             <thead><tr><th className={th}>Alert</th><th className={th}>Severity</th><th className={th}>Basis</th><th className={th}>Data acquired</th><th className={th}>Alert raised</th><th className={th}>Status</th></tr></thead>
             <tbody>
               {items.map((a) => (
                 <tr key={a.id}>
                   <td className={td}>
                     <Link href={`/app/${org}/alerts/${a.id}`} className="font-medium hover:underline">{a.title}</Link>
-                    <span className="block text-[0.75rem] text-bone-50/45">{a.aoiName} · {a.ruleName ?? "rule deleted"}{a.fromReprocessing ? " · from reprocessing (not new data)" : ""}{a.escalationLevel ? " · escalated" : ""}</span>
+                    <span className="block text-[0.75rem] text-bone-50/55">{a.aoiName} · {a.ruleName ?? "rule deleted"}{a.fromReprocessing ? " · from reprocessing (not new data)" : ""}{a.escalationLevel ? " · escalated" : ""}</span>
                   </td>
                   <td className={td}><Badge tone={SEVERITY_TONE[a.severity] ?? "neutral"}>{a.severity}</Badge></td>
                   <td className={td}>{a.basis ? BASIS_LABEL[a.basis] ?? a.basis : "—"}</td>

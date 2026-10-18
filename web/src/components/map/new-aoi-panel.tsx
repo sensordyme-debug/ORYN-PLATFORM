@@ -64,7 +64,7 @@ export function NewAoiPanel({
   return (
     <form onSubmit={save} className="flex flex-col gap-3 p-4">
       <div>
-        <p className="t-eyebrow text-bone-50/45">New area of interest</p>
+        <p className="t-eyebrow text-bone-50/55">New area of interest</p>
         <p className="mt-1 text-[0.8125rem] text-bone-50/65">
           {geometry.type === "Point" ? "Point" : geometry.type === "LineString" ? "Line" : "Polygon"} drawn
           {area !== null ? ` · ${formatArea(area)}` : ""}. Saving starts monitoring and queues a search of the last 180 days of imagery.

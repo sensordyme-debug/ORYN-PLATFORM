@@ -156,7 +156,7 @@ export function ComparisonPanel({
 
   return (
     <section aria-label="Season comparison" className="flex flex-col gap-2">
-      <p className="t-eyebrow text-bone-50/45">Season comparison</p>
+      <p className="t-eyebrow text-bone-50/55">Season comparison</p>
       <p className="text-[0.75rem] text-bone-50/55">
         Compare the same season of two years with Sentinel-2 (10 m). ORYN picks the clearest image on one tile in each period and reports regions of at least 2,000 m² where NDVI changed by 0.20 or more. Results are candidate changes to review, not confirmed changes.
       </p>

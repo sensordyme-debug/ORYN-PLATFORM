@@ -19,12 +19,12 @@ export function NotesThread({ slug, targetType, targetId, canWrite, timeZone }: 
   }, [slug, targetType, targetId, tick]);
   return (
     <section aria-label="Analyst notes">
-      <p className="t-eyebrow mb-2 text-bone-50/45">Notes ({notes.length})</p>
+      <p className="t-eyebrow mb-2 text-bone-50/55">Notes ({notes.length})</p>
       <ul className="flex flex-col gap-2">
         {notes.map((n) => (
           <li key={n.id} className="rounded-[3px] bg-bone-50/[0.03] px-2.5 py-1.5 text-[0.75rem]">
             <p className="whitespace-pre-wrap text-bone-50/85">{n.body}</p>
-            <p className="mt-0.5 text-bone-50/40">{n.author ?? "Former member"} · {formatDateTime(n.created_at, timeZone)}</p>
+            <p className="mt-0.5 text-bone-50/55">{n.author ?? "Former member"} · {formatDateTime(n.created_at, timeZone)}</p>
           </li>
         ))}
       </ul>

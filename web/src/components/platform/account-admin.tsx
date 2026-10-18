@@ -77,7 +77,7 @@ export function CreateAccountForm({ orgs }: { orgs: OrgOption[] }) {
         <input type="checkbox" name="trialOnly" className="mt-0.5" />
         Trial-only account (can open trial workspaces only)
       </label>
-      <p className="text-[0.75rem] text-bone-50/45">
+      <p className="text-[0.75rem] text-bone-50/55">
         A temporary password is generated. The account never receives platform-administrator rights from this form.
       </p>
       <Button type="submit" variant="primary" disabled={pending}>{pending ? "Creating…" : "Create account"}</Button>

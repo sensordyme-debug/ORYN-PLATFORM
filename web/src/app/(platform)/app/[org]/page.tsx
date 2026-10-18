@@ -3,6 +3,7 @@ import { CompleteOnboardingButton } from "@/components/platform/onboarding";
 import { Badge, DataAge, EmptyState, EVIDENCE_TONE, LinkButton, Notice, PageHeader, Panel, SEVERITY_TONE, Stat, Table, td, th } from "@/components/platform/ui";
 import { ageInDays, formatDate, formatDateTime, formatNumber, relativeTime } from "@/lib/format";
 import { formatArea } from "@/lib/geo";
+import { orgProfile } from "@/lib/org-profile";
 import { sensorLabel } from "@/lib/sensors";
 import { getOrgPageAccess } from "@/server/authz/next";
 import { overviewData } from "@/server/results/overview";
@@ -13,7 +14,8 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
   const { org } = await props.params;
   const access = await getOrgPageAccess(org);
   const tz = access.org.settings.timezone ?? "UTC";
-  const isAg = access.org.kind === "agriculture";
+  const words = orgProfile(access.org.kind);
+  const isAg = words.fieldHealth;
 
   const data = await overviewData(access);
 
@@ -22,7 +24,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={isAg ? "Agricultural workspace" : access.org.kind === "municipal" ? "Municipal workspace" : "Workspace"}
+        eyebrow={words.workspace}
         title={access.org.name}
         actions={<LinkButton href={`/app/${org}/map`} variant="primary">Open map workspace</LinkButton>}
       />
@@ -41,7 +43,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
       ) : null}
 
       <div className="grid grid-cols-2 gap-4 rounded-[4px] border border-bone-50/[0.09] bg-ink-850 p-4 md:grid-cols-5">
-        <Stat label={isAg ? "Monitored areas" : "Areas of interest"} value={s.aois} />
+        <Stat label={words.areasStat} value={s.aois} />
         <Stat label="With data ≤ 10 days old" value={`${s.current} / ${s.aois}`} detail="usable satellite observation" />
         <Stat label="Open alerts" value={s.open_alerts} />
         <Stat label="Changes to review" value={s.unreviewed} detail="moderate or strong evidence" />
@@ -64,20 +66,20 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
             {data.fields.length === 0 ? (
               <EmptyState title="No fields yet" className="m-4" action={access.can("aoi.write") ? <LinkButton href={`/app/${org}/areas/new`} variant="primary">Add fields</LinkButton> : undefined} />
             ) : (
-              <Table>
+              <Table label="Field health">
                 <thead><tr><th className={th}>Field</th><th className={th}>NDVI</th><th className={th}>Change</th><th className={th}>Data age</th><th className={th}>Attention</th></tr></thead>
                 <tbody>
                   {data.fields.map((f) => {
                     const delta = f.latest_mean !== null && f.prev_mean !== null ? f.latest_mean - f.prev_mean : null;
                     return (
                       <tr key={f.id}>
-                        <td className={td}><Link href={`/app/${org}/map?aoi=${f.id}`} className="font-medium hover:underline">{f.name}</Link><span className="block text-[0.75rem] text-bone-50/45">{[f.crop, formatArea(f.area_m2)].filter(Boolean).join(" · ")}</span></td>
+                        <td className={td}><Link href={`/app/${org}/map?aoi=${f.id}`} className="font-medium hover:underline">{f.name}</Link><span className="block text-[0.75rem] text-bone-50/55">{[f.crop, formatArea(f.area_m2)].filter(Boolean).join(" · ")}</span></td>
                         <td className={`${td} tabular-nums`}>{formatNumber(f.latest_mean, 2)}</td>
                         <td className={`${td} tabular-nums`}>
                           {delta === null ? "—" : <span className={delta <= -0.1 ? "text-data-alert" : delta >= 0.1 ? "text-data-veg" : ""}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</span>}
-                          {f.prev_at ? <span className="block text-[0.6875rem] text-bone-50/40">vs {formatDate(f.prev_at, tz)} · {sensorLabel(f.latest_collection)}</span> : f.latest_at ? <span className="block text-[0.6875rem] text-bone-50/40">no earlier {sensorLabel(f.latest_collection)} image</span> : null}
+                          {f.prev_at ? <span className="block text-[0.6875rem] text-bone-50/55">vs {formatDate(f.prev_at, tz)} · {sensorLabel(f.latest_collection)}</span> : f.latest_at ? <span className="block text-[0.6875rem] text-bone-50/55">no earlier {sensorLabel(f.latest_collection)} image</span> : null}
                         </td>
-                        <td className={td}>{f.latest_at ? <DataAge at={f.latest_at} timeZone={tz} /> : <span className="text-bone-50/45">No usable image</span>}</td>
+                        <td className={td}>{f.latest_at ? <DataAge at={f.latest_at} timeZone={tz} /> : <span className="text-bone-50/55">No usable image</span>}</td>
                         <td className={td}>
                           <div className="flex flex-wrap gap-1">
                             {f.open_alerts ? <Badge tone="alert">{f.open_alerts} alert</Badge> : null}
@@ -93,15 +95,15 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
             )}
           </Panel>
         ) : (
-          <Panel title="Candidate changes awaiting review" description="Computed from satellite observations; each needs verification before it is treated as a real-world change." actions={<LinkButton size="sm" href={`/app/${org}/detections`}>Inspection queue</LinkButton>} bodyClassName="p-0">
+          <Panel title="Candidate changes awaiting review" description="Computed from satellite observations; each needs verification before it is treated as a real-world change." actions={<LinkButton size="sm" href={`/app/${org}/detections`}>{words.review}</LinkButton>} bodyClassName="p-0">
             {data.changes.length === 0 ? (
               <EmptyState title="Nothing to review" className="m-4">Candidate changes appear after two usable observations of an area are compared.</EmptyState>
             ) : (
-              <Table>
+              <Table label="Candidate changes awaiting review">
                 <tbody>
                   {data.changes.map((c) => (
                     <tr key={c.id}>
-                      <td className={td}><Link className="hover:underline" href={`/app/${org}/map?detection=${c.id}`}>{c.title}</Link><span className="block text-[0.75rem] text-bone-50/45">{c.aoi_name} · {c.area_m2 ? formatArea(c.area_m2) : ""}</span></td>
+                      <td className={td}><Link className="hover:underline" href={`/app/${org}/map?detection=${c.id}`}>{c.title}</Link><span className="block text-[0.75rem] text-bone-50/55">{c.aoi_name} · {c.area_m2 ? formatArea(c.area_m2) : ""}</span></td>
                       <td className={td}><Badge tone={EVIDENCE_TONE[c.evidence_grade]}>{c.evidence_grade}</Badge></td>
                       <td className={`${td} whitespace-nowrap`}>{c.comparison_observed_at ? formatDate(c.comparison_observed_at, tz) : "—"}</td>
                     </tr>
@@ -124,7 +126,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
                       <Link href={`/app/${org}/alerts/${a.id}`} className="hover:underline">{a.title}</Link>
                       <Badge tone={SEVERITY_TONE[a.severity] ?? "neutral"}>{a.severity}</Badge>
                     </div>
-                    <p className="text-[0.75rem] text-bone-50/45">
+                    <p className="text-[0.75rem] text-bone-50/55">
                       {a.aoi_name} · data acquired {a.observed_at ? relativeTime(a.observed_at) : "—"} · alerted {relativeTime(a.created_at)}{a.from_reprocessing ? " · from reprocessing" : ""}
                     </p>
                   </li>
@@ -141,7 +143,7 @@ export default async function OverviewPage(props: PageProps<"/app/[org]">) {
                   {data.news.map((n) => (
                     <li key={n.url}>
                       <a href={n.url} target="_blank" rel="noreferrer" className="hover:underline">{n.title}</a>
-                      <span className="block text-[0.75rem] text-bone-50/45">{n.domain} · {n.category} · {n.aoi_name} · {n.published_at ? formatDate(n.published_at, tz) : "date unknown"}</span>
+                      <span className="block text-[0.75rem] text-bone-50/55">{n.domain} · {n.category} · {n.aoi_name} · {n.published_at ? formatDate(n.published_at, tz) : "date unknown"}</span>
                     </li>
                   ))}
                 </ul>
@@ -159,7 +161,7 @@ function Step({ done, href, children, optional }: { done: boolean; href: string;
     <li className="flex items-center gap-2">
       <span aria-hidden="true" className={done ? "text-data-veg" : "text-bone-50/30"}>{done ? "✓" : "○"}</span>
       <Link href={href} className="hover:underline">{children}</Link>
-      {done ? <span className="sr-only">(done)</span> : optional ? <span className="text-[0.6875rem] text-bone-50/40">recommended</span> : null}
+      {done ? <span className="sr-only">(done)</span> : optional ? <span className="text-[0.6875rem] text-bone-50/55">recommended</span> : null}
     </li>
   );
 }

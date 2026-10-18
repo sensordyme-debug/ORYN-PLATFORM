@@ -28,7 +28,7 @@ export default async function AdminPage() {
         </div>
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
           <Panel title={`${orgs.length} organizations`} bodyClassName="p-0">
-            <Table>
+            <Table label="Organizations">
               <thead>
                 <tr>
                   <th className={th}>Name</th>
@@ -44,7 +44,7 @@ export default async function AdminPage() {
                   <tr key={o.id}>
                     <td className={td}>
                       <span className="font-medium">{o.name}</span>
-                      <span className="block text-[0.75rem] text-bone-50/45">{o.slug}</span>
+                      <span className="block text-[0.75rem] text-bone-50/55">{o.slug}</span>
                       {o.is_trial ? <Badge tone="info" className="mt-1">Trial</Badge> : o.is_synthetic ? <Badge tone="watch" className="mt-1">Synthetic</Badge> : null}
                     </td>
                     <td className={td}>{o.kind.replace("_", " ")}</td>

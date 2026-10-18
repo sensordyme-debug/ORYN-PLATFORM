@@ -67,7 +67,7 @@ export default async function SourcesPage(props: PageProps<"/app/[org]/sources">
         </section>
       ))}
       <Panel title="Recent catalog searches for this organization" bodyClassName="p-0">
-        <Table>
+        <Table label="Recent catalog searches">
           <thead><tr><th className={th}>When</th><th className={th}>Source</th><th className={th}>Area</th><th className={th}>Result</th></tr></thead>
           <tbody>
             {runs.map((r, i) => (

@@ -36,7 +36,7 @@ export default async function AuditPage(props: PageProps<"/app/[org]/audit">) {
         {events.length === 0 ? (
           <EmptyState title="No audit events" className="m-4" />
         ) : (
-          <Table>
+          <Table label="Audit events">
             <thead>
               <tr><th className={th}>Time ({tz})</th><th className={th}>Actor</th><th className={th}>Action</th><th className={th}>Target</th><th className={th}>Details</th></tr>
             </thead>

@@ -93,7 +93,7 @@ export function DetectionInspector({
     <div className="flex flex-col gap-5 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="t-eyebrow flex items-center gap-2 text-bone-50/45">
+          <p className="t-eyebrow flex items-center gap-2 text-bone-50/55">
             <DetectionSwatch type={d.type} />
             {isZone ? "low-vigour zone" : d.type.replace(/_/g, " ")}
           </p>
@@ -127,11 +127,11 @@ export function DetectionInspector({
 
       {isZone ? (
         <section aria-label="Image">
-          <p className="t-eyebrow mb-2 text-bone-50/45">Image</p>
+          <p className="t-eyebrow mb-2 text-bone-50/55">Image</p>
           <div className="grid grid-cols-2 gap-2">
             {[d.comparison, d.baseline].map((o, i) => (
               <div key={i} className="rounded-[3px] border border-bone-50/[0.08] p-2 text-[0.75rem]">
-                <p className="text-bone-50/45">{i === 0 ? "Zone found in" : "Persistence checked in"}</p>
+                <p className="text-bone-50/55">{i === 0 ? "Zone found in" : "Persistence checked in"}</p>
                 {o ? (
                   <>
                     <p className="mt-0.5">{formatDate(o.observedAt, timeZone)}</p>
@@ -148,11 +148,11 @@ export function DetectionInspector({
         </section>
       ) : (
       <section aria-label="Before and after">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Before and after</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Before and after</p>
         <div className="grid grid-cols-2 gap-2">
           {[d.baseline, d.comparison].map((o, i) => (
             <div key={i} className="rounded-[3px] border border-bone-50/[0.08] p-2 text-[0.75rem]">
-              <p className="text-bone-50/45">{i === 0 ? "Baseline" : "Comparison"}</p>
+              <p className="text-bone-50/55">{i === 0 ? "Baseline" : "Comparison"}</p>
               {o ? (
                 <>
                   <p className="mt-0.5">{formatDate(o.observedAt, timeZone)}</p>
@@ -176,7 +176,7 @@ export function DetectionInspector({
       )}
 
       <section aria-label="Measurements">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Measurements</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Measurements</p>
         <KeyValues
           items={isZone ? [
             ["Rank in this image", z.rank !== undefined ? `#${z.rank} (by area × NDVI deficit)` : "—"],
@@ -207,7 +207,7 @@ export function DetectionInspector({
       </section>
 
       <section aria-label="Evidence assessment">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Why the evidence is {d.evidenceGrade}</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Why the evidence is {d.evidenceGrade}</p>
         <ul className="list-disc pl-4 text-[0.75rem] text-bone-50/75">{d.evidenceReasons.map((r) => <li key={r}>{r}</li>)}</ul>
         {d.limitations.length ? (
           <details className="mt-2 text-[0.75rem] text-bone-50/65">
@@ -218,14 +218,14 @@ export function DetectionInspector({
       </section>
 
       <section aria-label="Overlapping reference data">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Overlapping reference data</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Overlapping reference data</p>
         {d.referenceMatches.length === 0 ? (
           <p className="text-[0.75rem] text-bone-50/50">No organization reference features (permits, parcels, infrastructure) intersect this candidate. That does not imply anything is unpermitted — the layer may be incomplete or absent.</p>
         ) : (
           <ul className="flex flex-col gap-1.5 text-[0.75rem]">
             {d.referenceMatches.map((m) => (
               <li key={m.layerId}>
-                <span className="text-bone-50/85">{m.layerName}</span> <span className="text-bone-50/45">({m.kind})</span>: {m.count} feature{m.count === 1 ? "" : "s"}
+                <span className="text-bone-50/85">{m.layerName}</span> <span className="text-bone-50/55">({m.kind})</span>: {m.count} feature{m.count === 1 ? "" : "s"}
                 {m.samples.length ? <span className="block text-bone-50/50">{m.samples.map((x) => x.name ?? x.externalId).join(", ")}{m.count > m.samples.length ? ", …" : ""}</span> : null}
               </li>
             ))}
@@ -235,7 +235,7 @@ export function DetectionInspector({
 
       {d.context.warnings.length ? (
         <section aria-label="Related warnings">
-          <p className="t-eyebrow mb-2 text-bone-50/45">Official warnings in this period</p>
+          <p className="t-eyebrow mb-2 text-bone-50/55">Official warnings in this period</p>
           <ul className="text-[0.75rem] text-bone-50/75">
             {d.context.warnings.map((w) => <li key={w.id}>{w.title} {w.event_start ? `(${formatDate(w.event_start, timeZone)})` : ""}</li>)}
           </ul>
@@ -244,17 +244,17 @@ export function DetectionInspector({
 
       {d.relatedAlerts.length ? (
         <section aria-label="Related alerts">
-          <p className="t-eyebrow mb-2 text-bone-50/45">Alerts</p>
+          <p className="t-eyebrow mb-2 text-bone-50/55">Alerts</p>
           <ul className="text-[0.75rem]">
             {d.relatedAlerts.map((a) => (
-              <li key={a.id}><Link className="hover:underline" href={`/app/${slug}/alerts/${a.id}`}>{a.title}</Link> <span className="text-bone-50/45">· {a.status}</span></li>
+              <li key={a.id}><Link className="hover:underline" href={`/app/${slug}/alerts/${a.id}`}>{a.title}</Link> <span className="text-bone-50/55">· {a.status}</span></li>
             ))}
           </ul>
         </section>
       ) : null}
 
       <section aria-label="Verification">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Verification</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Verification</p>
         {d.verifiedBy ? (
           <p className="mb-2 text-[0.75rem] text-bone-50/65">
             {d.verificationStatus.replace(/_/g, " ")} by {d.verifiedBy} on {formatDateTime(d.verifiedAt, timeZone)}{d.verificationNote ? ` — “${d.verificationNote}”` : ""}

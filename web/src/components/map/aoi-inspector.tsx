@@ -155,14 +155,14 @@ export function AoiInspector({
     <div className="flex flex-col gap-5 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="t-eyebrow text-bone-50/45">{AOI_KIND_LABEL[aoi.kind as AoiKind] ?? aoi.kind}</p>
+          <p className="t-eyebrow text-bone-50/55">{AOI_KIND_LABEL[aoi.kind as AoiKind] ?? aoi.kind}</p>
           <h2 className="mt-1 text-[1.125rem] font-medium leading-tight tracking-[-0.015em]">{aoi.name}</h2>
           <p className="mt-1 text-[0.75rem] text-bone-50/55">{formatArea(aoi.areaM2)} · {formatLatLon(aoi.labelPoint, 4)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {aoi.status === "archived" ? <Badge tone="muted">Archived</Badge> : aoi.monitoringEnabled ? <Badge tone="good">Monitoring</Badge> : <Badge tone="muted">Monitoring off</Badge>}
             {aoi.isSynthetic ? <Badge tone="watch" title="Development sample boundary">Synthetic boundary</Badge> : null}
           </div>
-          <p className="mt-1.5 text-[0.6875rem] text-bone-50/45">
+          <p className="mt-1.5 text-[0.6875rem] text-bone-50/55">
             Boundary: {aoi.boundarySource.method}{aoi.boundarySource.provider ? ` · ${aoi.boundarySource.provider}` : ""}{aoi.boundarySource.external_id ? ` (${aoi.boundarySource.external_id})` : ""}
           </p>
         </div>
@@ -173,7 +173,7 @@ export function AoiInspector({
 
       <section aria-label="Data currency" className="rounded-[3px] border border-bone-50/[0.08] p-3">
         <div className="flex items-center justify-between">
-          <p className="t-eyebrow text-bone-50/45">Latest usable observation</p>
+          <p className="t-eyebrow text-bone-50/55">Latest usable observation</p>
           <Badge tone={CURRENCY_TONE[currency]}>{currency === "none" ? "None yet" : currency}</Badge>
         </div>
         {latestValid ? (
@@ -194,7 +194,7 @@ export function AoiInspector({
       {latestNdvi ? (
         <section aria-label="Vegetation index" className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <p className="t-eyebrow text-bone-50/45">Vegetation index (NDVI)</p>
+            <p className="t-eyebrow text-bone-50/55">Vegetation index (NDVI)</p>
             <ResultClassBadge resultClass={latestNdvi.resultClass} />
           </div>
           <p className="text-[0.75rem] text-bone-50/55">Latest usable NDVI: {formatDateTime(latestNdvi.observedAt, timeZone)} · {latestNdvi.asset.platform}</p>
@@ -250,7 +250,7 @@ export function AoiInspector({
 
       <section aria-label="Imagery">
         <div className="mb-2 flex items-center justify-between">
-          <p className="t-eyebrow text-bone-50/45">Imagery for this area ({assets?.length ?? 0})</p>
+          <p className="t-eyebrow text-bone-50/55">Imagery for this area ({assets?.length ?? 0})</p>
           {perms.run && aoi.status === "active" ? (
             <Button size="sm" onClick={syncNow}><RefreshCw className="size-3" aria-hidden="true" /> Check now</Button>
           ) : null}
@@ -271,13 +271,13 @@ export function AoiInspector({
               <li key={a.asset.id} className="flex items-start justify-between gap-2 border-b border-bone-50/[0.05] py-1.5 text-[0.75rem]">
                 <div className="min-w-0">
                   <p className="text-bone-50/85">{formatDate(a.asset.acquiredAt, timeZone)} · {a.asset.platform ?? a.asset.collection}</p>
-                  <p className="text-bone-50/45">
+                  <p className="text-bone-50/55">
                     {a.asset.gsdM ? `${a.asset.gsdM} m` : ""}{a.asset.cloudCover !== null ? ` · scene cloud ${Math.round(a.asset.cloudCover)}%` : ""} · covers {formatPercent(a.coverageFraction)}
                   </p>
                   {a.status === "skipped" || a.status === "unusable" || unusable ? (
                     <p className="text-data-amber/90">{a.statusReason ?? unusable?.quality.unusable_reason ?? "Not usable"}</p>
                   ) : a.status === "queued" || a.status === "discovered" ? (
-                    <p className="text-bone-50/45">Queued for analysis</p>
+                    <p className="text-bone-50/55">Queued for analysis</p>
                   ) : a.status === "failed" ? (
                     <p className="text-data-alert">Processing failed — see Processing</p>
                   ) : null}
@@ -295,7 +295,7 @@ export function AoiInspector({
 
       {aoiDetections.length > 0 ? (
         <section aria-label="Candidate changes">
-          <p className="t-eyebrow mb-2 text-bone-50/45">Candidate changes ({aoiDetections.length})</p>
+          <p className="t-eyebrow mb-2 text-bone-50/55">Candidate changes ({aoiDetections.length})</p>
           <ul className="flex flex-col">
             {aoiDetections.slice(0, 12).map((d) => (
               <li key={d.properties.id}>
@@ -316,7 +316,7 @@ export function AoiInspector({
       {context ? <ContextSection context={context} timeZone={timeZone} /> : null}
 
       <section aria-label="Configuration">
-        <p className="t-eyebrow mb-2 text-bone-50/45">Monitoring configuration</p>
+        <p className="t-eyebrow mb-2 text-bone-50/55">Monitoring configuration</p>
         <KeyValues
           items={[
             ["Check interval", `every ${aoi.monitoringIntervalHours} h`],
@@ -345,7 +345,7 @@ export function AoiInspector({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[3px] border border-bone-50/[0.07] px-2 py-1.5">
-      <p className="text-[0.625rem] uppercase tracking-[0.08em] text-bone-50/45">{label}</p>
+      <p className="text-[0.625rem] uppercase tracking-[0.08em] text-bone-50/55">{label}</p>
       <p className="mt-0.5 text-[0.9375rem] tabular-nums">{value}</p>
     </div>
   );
@@ -364,7 +364,7 @@ function ContextSection({ context, timeZone }: { context: AoiContext; timeZone: 
   const activeWarnings = context.warnings.filter((w) => w.active);
   return (
     <section aria-label="Weather, warnings, and news" className="flex flex-col gap-3">
-      <p className="t-eyebrow text-bone-50/45">Weather & events</p>
+      <p className="t-eyebrow text-bone-50/55">Weather & events</p>
       {activeWarnings.length ? (
         <div className="flex flex-col gap-1.5">
           {activeWarnings.map((w) => (
@@ -395,7 +395,7 @@ function ContextSection({ context, timeZone }: { context: AoiContext; timeZone: 
                 <a href={n.url} target="_blank" rel="noreferrer" className="text-bone-50/85 hover:underline">
                   {n.title} <ExternalLink className="inline size-3" aria-hidden="true" />
                 </a>
-                <span className="block text-bone-50/45">
+                <span className="block text-bone-50/55">
                   {n.domain} · {n.published_at ? formatDate(n.published_at, timeZone) : "date unknown"} · {n.category} · {n.independent_sources} independent source{n.independent_sources === 1 ? "" : "s"}
                 </span>
               </li>

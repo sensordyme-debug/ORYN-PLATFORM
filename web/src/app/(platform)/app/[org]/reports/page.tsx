@@ -31,12 +31,12 @@ export default async function ReportsPage(props: PageProps<"/app/[org]/reports">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Panel title="Reports" bodyClassName="p-0">
           {reports.length === 0 ? <EmptyState title="No reports yet" className="m-4" /> : (
-            <Table>
+            <Table label="Reports">
               <thead><tr><th className={th}>Report</th><th className={th}>Status</th><th className={th}>Generated</th><th className={th} /></tr></thead>
               <tbody>
                 {reports.map((r) => (
                   <tr key={r.id}>
-                    <td className={td}><Link href={`/app/${org}/reports/${r.id}`} className="font-medium hover:underline">{r.title}</Link><span className="block text-[0.75rem] text-bone-50/45">{r.summaryMethod ?? ""}</span></td>
+                    <td className={td}><Link href={`/app/${org}/reports/${r.id}`} className="font-medium hover:underline">{r.title}</Link><span className="block text-[0.75rem] text-bone-50/55">{r.summaryMethod ?? ""}</span></td>
                     <td className={td}><Badge tone={TONE[r.status]}>{r.status}</Badge>{r.error ? <span className="block text-[0.75rem] text-data-alert">{r.error}</span> : null}</td>
                     <td className={td}>{r.completedAt ? formatDateTime(r.completedAt, tz) : formatDateTime(r.createdAt, tz)}</td>
                     <td className={td}>{r.status === "ready" ? <a className="text-[0.8125rem] underline" href={`/api/v1/orgs/${org}/reports/${r.id}/pdf`}>PDF ({formatBytes(r.pdfSizeBytes)})</a> : null}</td>
@@ -56,12 +56,12 @@ export default async function ReportsPage(props: PageProps<"/app/[org]/reports">
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <Panel title="Exports" bodyClassName="p-0">
             {exports.length === 0 ? <EmptyState title="No exports yet" className="m-4" /> : (
-              <Table>
+              <Table label="Exports">
                 <thead><tr><th className={th}>File</th><th className={th}>Status</th><th className={th}>Licence notes</th><th className={th}>Expires</th><th className={th} /></tr></thead>
                 <tbody>
                   {exports.map((e) => (
                     <tr key={e.id}>
-                      <td className={td}>{e.filename ?? `${e.subject}.${e.type}`}<span className="block text-[0.75rem] text-bone-50/45">{formatBytes(e.sizeBytes)} · downloaded {e.downloadCount}×</span></td>
+                      <td className={td}>{e.filename ?? `${e.subject}.${e.type}`}<span className="block text-[0.75rem] text-bone-50/55">{formatBytes(e.sizeBytes)} · downloaded {e.downloadCount}×</span></td>
                       <td className={td}><Badge tone={TONE[e.status]}>{e.status}</Badge>{e.error ? <span className="block text-[0.75rem] text-data-alert">{e.error}</span> : null}</td>
                       <td className={`${td} max-w-sm text-[0.75rem] text-bone-50/60`}>{e.licenseNotes.join(" ") || "—"}</td>
                       <td className={td}>{e.expiresAt ? formatDateTime(e.expiresAt, tz) : "—"}</td>

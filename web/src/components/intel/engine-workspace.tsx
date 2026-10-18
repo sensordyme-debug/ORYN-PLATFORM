@@ -349,8 +349,8 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
       {/* Left panel: search, modes, layers */}
       <aside className={cn("absolute inset-y-0 left-0 z-20 flex w-[310px] max-w-[85vw] flex-col border-r border-bone-50/[0.08] bg-ink-950/95 backdrop-blur transition-transform lg:static lg:translate-x-0", leftOpen ? "translate-x-0" : "-translate-x-full lg:hidden")}>
         <div className="flex items-center gap-2 border-b border-bone-50/[0.08] p-3" role="search">
-          <Search className="size-4 shrink-0 text-bone-50/45" aria-hidden="true" />
-          <input aria-label="Search areas, findings, loaded globe records, places, or coordinates" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the globe or enter lat, lon" className="min-w-0 flex-1 bg-transparent text-[0.8125rem] placeholder:text-bone-50/30 focus:outline-none" />
+          <Search className="size-4 shrink-0 text-bone-50/55" aria-hidden="true" />
+          <input aria-label="Search areas, findings, loaded globe records, places, or coordinates" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the globe or enter lat, lon" className="min-w-0 flex-1 bg-transparent text-[0.8125rem] placeholder:text-bone-50/50 focus:outline-none" />
           {query ? <button aria-label="Clear search" onClick={() => setQuery("")}><X className="size-3.5 text-bone-50/50" /></button> : null}
         </div>
         {hits.length ? (
@@ -365,7 +365,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
                   }}
                 >
                   <span className="block text-bone-50/85">{h.label}</span>
-                  <span className="text-bone-50/40">{h.sub}</span>
+                  <span className="text-bone-50/55">{h.sub}</span>
                 </button>
               </li>
             ))}
@@ -373,19 +373,19 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
         ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto p-3 text-[0.8125rem]">
           <section aria-label="Modes" className="mb-4">
-            <p className="t-eyebrow mb-2 text-bone-50/45">Modes</p>
+            <p className="t-eyebrow mb-2 text-bone-50/55">Modes</p>
             <div className="flex flex-col gap-1">
               {MODES.map((m) => (
                 <button key={m.id} disabled={!bridge} onClick={() => void applyMode(m)} aria-pressed={mode === m.id} className={cn("rounded-[3px] border px-2 py-1.5 text-left disabled:opacity-45", mode === m.id ? "border-signal/60 bg-signal/[0.06]" : "border-bone-50/10 hover:border-bone-50/30")}>
                   <span className="block text-[0.8125rem]">{m.label}</span>
-                  <span className="block text-[0.6875rem] text-bone-50/45">{m.description}</span>
+                  <span className="block text-[0.6875rem] text-bone-50/55">{m.description}</span>
                 </button>
               ))}
             </div>
           </section>
 
           <fieldset className="mb-4 min-w-0">
-            <legend className="t-eyebrow mb-2 text-bone-50/45">ORYN data</legend>
+            <legend className="t-eyebrow mb-2 text-bone-50/55">ORYN data</legend>
             <div className="py-1">
               <label className="flex items-start gap-2">
                 <input type="checkbox" className="mt-1" disabled={!bridge} checked={showAois} onChange={(e) => { setMode(null); setShowAois(e.target.checked); }} />
@@ -394,7 +394,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
                     <span>Areas of interest</span>
                     {showAois && bridge ? <Badge tone="good">Current</Badge> : null}
                   </span>
-                  <span className="block text-[0.6875rem] text-bone-50/45">organization data · Your organization&apos;s monitored fields and areas.</span>
+                  <span className="block text-[0.6875rem] text-bone-50/55">organization data · Your organization&apos;s monitored fields and areas.</span>
                   <span className="block text-[0.6875rem] text-bone-50/55">{aoiCount} shown</span>
                 </span>
               </label>
@@ -407,7 +407,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
                     <span>Candidate changes and zones</span>
                     {showDetections && detections ? <Badge tone={detections.error ? "alert" : "good"}>{detections.error ? "Unavailable" : "Current"}</Badge> : null}
                   </span>
-                  <span className="block text-[0.6875rem] text-bone-50/45">derived analytics · ORYN findings from the last year at moderate evidence or stronger; review them in the map workspace.</span>
+                  <span className="block text-[0.6875rem] text-bone-50/55">derived analytics · ORYN findings from the last year at moderate evidence or stronger; review them in the map workspace.</span>
                   {detections?.fc ? (
                     <span className="block text-[0.6875rem] text-bone-50/55">
                       {detections.fc.features.length} shown{detections.retrievedAt ? ` · retrieved ${relativeTime(detections.retrievedAt)}` : ""}
@@ -422,7 +422,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
           {!bridge && !fatal ? <p className="mb-4 text-[0.75rem] text-bone-50/55" role="status">Loading the globe&apos;s layers…</p> : null}
           {groups.map((g) => (
             <fieldset key={g.label} className="mb-4 min-w-0">
-              <legend className="t-eyebrow mb-2 text-bone-50/45">{g.label}</legend>
+              <legend className="t-eyebrow mb-2 text-bone-50/55">{g.label}</legend>
               {g.items.map((l) => (
                 <LayerRow key={l.id} layer={l} busy={pending.has(l.id)} bridge={bridge} onToggle={(on) => { setMode(null); void toggleLayer(l.id, on); }} />
               ))}
@@ -431,7 +431,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
           {withheldLayers.length ? (
             <details className="text-[0.6875rem] text-bone-50/50">
               <summary className="cursor-pointer text-bone-50/60">{withheldLayers.length} engine layers not offered in ORYN</summary>
-              <p className="mt-1 text-bone-50/45">Withheld because their data licences do not permit commercial use, their terms could not be verified, or the data is simulated or unvalidated.</p>
+              <p className="mt-1 text-bone-50/55">Withheld because their data licences do not permit commercial use, their terms could not be verified, or the data is simulated or unvalidated.</p>
               <ul className="mt-1 flex flex-col gap-1">
                 {withheldLayers.map((l) => (
                   <li key={l.id}>
@@ -441,7 +441,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
               </ul>
             </details>
           ) : null}
-          <p className="text-[0.6875rem] text-bone-50/40">
+          <p className="text-[0.6875rem] text-bone-50/55">
             Geospatial engine: God&apos;s Eye View (MIT). Basemap: NASA GIBS Blue Marble and USDA NAIP imagery via USGS The National Map. Public feeds refresh periodically; each layer shows its source, licence, and when it was last retrieved. Layers marked Unavailable need a provider key or are not reachable from this deployment.
           </p>
         </div>
@@ -513,9 +513,9 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
             <span>{l.name}</span>
             {tone ? <Badge tone={tone}>{STATE_LABEL[l.state]}</Badge> : blocked ? <Badge tone="muted">Unavailable</Badge> : null}
           </span>
-          {l.source ? <span className="block text-[0.6875rem] text-bone-50/45">{l.source}</span> : null}
+          {l.source ? <span className="block text-[0.6875rem] text-bone-50/55">{l.source}</span> : null}
           {l.licence?.offered && l.licence.nature ? (
-            <span className="block text-[0.6875rem] text-bone-50/40" title={l.licence.sources.map((s) => `${s.name}: ${s.licence}. ${s.attribution}`).join("\n")}>
+            <span className="block text-[0.6875rem] text-bone-50/55" title={l.licence.sources.map((s) => `${s.name}: ${s.licence}. ${s.attribution}`).join("\n")}>
               {NATURE_LABEL[l.licence.nature]} · {l.licence.sources.map((s) => s.licence).join("; ")}
             </span>
           ) : null}
@@ -552,7 +552,7 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
                 <li key={i} className="flex items-center gap-1">
                   {item.color ? <span className="inline-block size-2 rounded-full" style={{ background: item.color }} aria-hidden="true" /> : null}
                   {item.label}
-                  {item.count !== null ? <span className="text-bone-50/40">{item.count}</span> : null}
+                  {item.count !== null ? <span className="text-bone-50/55">{item.count}</span> : null}
                 </li>
               ))}
             </ul>
@@ -563,13 +563,13 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
                 <li key={item.id}>
                   <button className={cn("block w-full truncate rounded-[2px] px-1 py-0.5 text-left hover:bg-bone-50/[0.05]", item.active ? "text-signal" : "text-bone-50/75")} onClick={() => bridge?.applyListItem(l.id, item.id)}>
                     {item.label}
-                    {item.detail ? <span className="text-bone-50/40"> · {item.detail}</span> : null}
+                    {item.detail ? <span className="text-bone-50/55"> · {item.detail}</span> : null}
                   </button>
                 </li>
               ))}
             </ol>
           ) : null}
-          {l.controls.info ? <p className="text-[0.6875rem] text-bone-50/45">{l.controls.info}</p> : null}
+          {l.controls.info ? <p className="text-[0.6875rem] text-bone-50/55">{l.controls.info}</p> : null}
         </div>
       ) : null}
     </div>
@@ -584,7 +584,7 @@ function EngineCard({ r, layer, timeZone, bridge, onClose }: { r: EngineRef; lay
     <div className="flex flex-col gap-3 p-4 text-[0.8125rem]" aria-label="Globe record details">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="t-eyebrow text-bone-50/45">{KIND_LABEL[r.kind] ?? "Feature"}{r.source ? ` · ${r.source}` : ""}</p>
+          <p className="t-eyebrow text-bone-50/55">{KIND_LABEL[r.kind] ?? "Feature"}{r.source ? ` · ${r.source}` : ""}</p>
           <h2 className="mt-1 text-[0.9375rem] font-medium">{r.label || r.id}</h2>
         </div>
         <button aria-label="Close" onClick={onClose} className="p-1 text-bone-50/50 hover:text-bone-50"><X className="size-4" /></button>
@@ -608,7 +608,7 @@ function EngineCard({ r, layer, timeZone, bridge, onClose }: { r: EngineRef; lay
       {licence?.note ? <p className="text-[0.75rem] text-bone-50/60">{licence.note}</p> : null}
       <p className="text-[0.75rem] text-bone-50/50">Values are shown as the provider reported them. Public feeds refresh periodically and do not cover every location.</p>
       {licence?.sources.length ? (
-        <p className="text-[0.6875rem] text-bone-50/45">{licence.sources.map((s) => `${s.attribution} (${s.licence})`).join(" · ")}</p>
+        <p className="text-[0.6875rem] text-bone-50/55">{licence.sources.map((s) => `${s.attribution} (${s.licence})`).join(" · ")}</p>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {r.position && bridge ? (

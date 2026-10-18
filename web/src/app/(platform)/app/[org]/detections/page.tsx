@@ -3,6 +3,7 @@ import { DetectionSwatch } from "@/components/map/legend";
 import { Badge, EmptyState, EVIDENCE_TONE, PageHeader, Panel, Table, td, th, VERIFICATION_TONE } from "@/components/platform/ui";
 import { formatDate } from "@/lib/format";
 import { formatArea } from "@/lib/geo";
+import { orgProfile } from "@/lib/org-profile";
 import { getOrgPageAccess } from "@/server/authz/next";
 import { detectionFeatures } from "@/server/results/service";
 
@@ -25,12 +26,11 @@ export default async function DetectionsPage(props: PageProps<"/app/[org]/detect
   const grade = sp.grade === "any" ? undefined : sp.grade === "strong" || sp.grade === "weak" ? sp.grade : "moderate";
   const fc = await detectionFeatures(access, { verification: [...VIEWS[view].verification], minGrade: grade, limit: 500 });
   const hidden = grade && grade !== "weak" ? (await detectionFeatures(access, { verification: [...VIEWS[view].verification], limit: 2000 })).features.length - fc.features.length : 0;
-  const isMunicipal = access.org.kind !== "agriculture";
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Review"
-        title={isMunicipal ? "Inspection queue" : "Change review"}
+        title={orgProfile(access.org.kind).review}
         description="Candidate changes found by comparing satellite observations. A candidate is not a finding about any property or person: it marks where measurements changed and needs review — and often a field check — before it is treated as real."
       />
       <div className="flex flex-wrap items-center gap-3 text-[0.8125rem]">
@@ -39,17 +39,17 @@ export default async function DetectionsPage(props: PageProps<"/app/[org]/detect
             <Link key={k} href={`/app/${org}/detections?view=${k}&grade=${grade ?? "any"}`} aria-current={view === k ? "page" : undefined} className={`rounded-[3px] px-2.5 py-1 ${view === k ? "bg-bone-50/[0.08]" : "text-bone-50/55 hover:text-bone-50"}`}>{v.label}</Link>
           ))}
         </nav>
-        <span className="text-bone-50/40">|</span>
+        <span className="text-bone-50/55">|</span>
         {(["moderate", "strong", "any"] as const).map((g) => (
           <Link key={g} href={`/app/${org}/detections?view=${view}&grade=${g}`} className={(grade ?? "any") === g ? "text-bone-50" : "text-bone-50/55 hover:text-bone-50"}>{g === "any" ? "include weak evidence" : `${g}+ evidence`}</Link>
         ))}
       </div>
-      {hidden > 0 ? <p className="-mt-3 text-[0.75rem] text-bone-50/45">{hidden} weak-evidence candidate{hidden === 1 ? " is" : "s are"} hidden. Weak candidates are usually seasonal change, haze, or mask edges.</p> : null}
+      {hidden > 0 ? <p className="-mt-3 text-[0.75rem] text-bone-50/55">{hidden} weak-evidence candidate{hidden === 1 ? " is" : "s are"} hidden. Weak candidates are usually seasonal change, haze, or mask edges.</p> : null}
       <Panel bodyClassName="p-0">
         {fc.features.length === 0 ? (
           <EmptyState title="Nothing in this list" className="m-4">Candidates appear after two usable observations of an area are compared.</EmptyState>
         ) : (
-          <Table>
+          <Table label="Candidate changes">
             <thead><tr><th className={th}>Candidate</th><th className={th}>Area</th><th className={th}>Compared</th><th className={th}>Evidence</th><th className={th}>Status</th></tr></thead>
             <tbody>
               {fc.features.map((f) => {
@@ -59,7 +59,7 @@ export default async function DetectionsPage(props: PageProps<"/app/[org]/detect
                     <td className={td}>
                       <span className="mr-2 inline-flex align-middle"><DetectionSwatch type={p.type} /></span>
                       <Link className="font-medium hover:underline" href={`/app/${org}/map?detection=${p.id}`}>{p.title}</Link>
-                      <span className="block text-[0.75rem] text-bone-50/45">{p.aoi_name} · {p.model}</span>
+                      <span className="block text-[0.75rem] text-bone-50/55">{p.aoi_name} · {p.model}</span>
                     </td>
                     <td className={`${td} whitespace-nowrap`}>{p.area_m2 ? formatArea(p.area_m2) : "—"}</td>
                     <td className={`${td} whitespace-nowrap`}>{p.baseline_observed_at ? formatDate(p.baseline_observed_at, tz) : "—"} → {p.comparison_observed_at ? formatDate(p.comparison_observed_at, tz) : "—"}</td>

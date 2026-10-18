@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { importUploadAction } from "@/app/(platform)/app/[org]/areas/actions";
 import { api, ApiError, orgApi } from "@/components/map/api";
 import { Button, Field, inputClass, Notice } from "@/components/platform/ui";
@@ -21,6 +21,8 @@ export function UploadImport({ slug, defaultKind, parents, maxMb }: { slug: stri
   const [parentId, setParentId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const readEarlyFile = useRef(false);
 
   async function onFile(file: File) {
     setError(null);
@@ -64,9 +66,21 @@ export function UploadImport({ slug, defaultKind, parents, maxMb }: { slug: stri
     else router.push(`/app/${slug}/areas`);
   }
 
+  // A file chosen before this component hydrated fired no change event; read it now.
+  useEffect(() => {
+    const early = fileInput.current?.files?.[0];
+    if (early && !readEarlyFile.current) {
+      readEarlyFile.current = true;
+      void onFile(early);
+    }
+    // Runs once, on hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="flex flex-col gap-3">
       <input
+        ref={fileInput}
         type="file"
         accept=".geojson,.json,application/geo+json,application/json"
         aria-label="GeoJSON file"
@@ -74,7 +88,7 @@ export function UploadImport({ slug, defaultKind, parents, maxMb }: { slug: stri
         onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
         className="text-[0.8125rem] file:mr-3 file:rounded-[3px] file:border file:border-bone-50/20 file:bg-transparent file:px-3 file:py-1 file:text-bone-50"
       />
-      <p className="text-[0.75rem] text-bone-50/45">GeoJSON in WGS 84 (EPSG:4326), up to {maxMb} MB. Polygons, multipolygons, points, and lines are accepted; points and lines are buffered by 50 m.</p>
+      <p className="text-[0.75rem] text-bone-50/55">GeoJSON in WGS 84 (EPSG:4326), up to {maxMb} MB. Polygons, multipolygons, points, and lines are accepted; points and lines are buffered by 50 m.</p>
       {error ? <Notice tone="error">{error}</Notice> : null}
       {parsed ? (
         <div className="flex flex-col gap-3">
@@ -86,7 +100,7 @@ export function UploadImport({ slug, defaultKind, parents, maxMb }: { slug: stri
                   <label key={f.index} className="flex items-center gap-2 border-b border-bone-50/[0.05] px-3 py-1.5 text-[0.8125rem]">
                     <input type="checkbox" checked={selected.has(f.index)} onChange={(e) => { const n = new Set(selected); if (e.target.checked) n.add(f.index); else n.delete(f.index); setSelected(n); }} />
                     <span className="flex-1">{f.name ?? `Feature ${f.index + 1}`}</span>
-                    <span className="text-bone-50/45">{f.geometry.type} · {f.areaM2 ? formatArea(f.areaM2) : "buffered"}</span>
+                    <span className="text-bone-50/55">{f.geometry.type} · {f.areaM2 ? formatArea(f.areaM2) : "buffered"}</span>
                   </label>
                 ))}
               </div>

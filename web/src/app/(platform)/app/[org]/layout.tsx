@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PlatformShell, type NavItem } from "@/components/platform/shell";
 import { FixtureBanner, SyntheticBanner, TrialBanner } from "@/components/platform/ui";
 import { ROLE_LABEL } from "@/lib/authz";
+import { orgProfile } from "@/lib/org-profile";
 import { listUserOrgs } from "@/server/authz/access";
 import { getOrgPageAccess } from "@/server/authz/next";
 import { getSessionUser } from "@/server/auth/session";
@@ -18,14 +19,13 @@ export default async function OrgLayout(props: LayoutProps<"/app/[org]">) {
 
   const counts = await shellSummary(access, user.id);
 
-  const isAg = access.org.kind === "agriculture";
-  const isMunicipal = access.org.kind === "municipal" || access.org.kind === "public_sector" || access.org.kind === "infrastructure";
+  const words = orgProfile(access.org.kind);
   const nav: NavItem[] = [
-    { href: base, label: isAg ? "Farm overview" : isMunicipal ? "Municipal overview" : "Overview", icon: "overview" },
+    { href: base, label: words.overview, icon: "overview" },
     { href: `${base}/map`, label: "Map workspace", icon: "map" },
     { href: `${base}/intel`, label: "Intelligence globe", icon: "globe" },
-    { href: `${base}/areas`, label: isAg ? "Fields & farms" : "Areas of interest", icon: "areas" },
-    { href: `${base}/detections`, label: isMunicipal ? "Inspection queue" : "Change review", icon: "review", badge: counts.unreviewed },
+    { href: `${base}/areas`, label: words.areas, icon: "areas" },
+    { href: `${base}/detections`, label: words.review, icon: "review", badge: counts.unreviewed },
     { href: `${base}/alerts`, label: "Alerts", icon: "alerts", badge: counts.open_alerts },
     { href: `${base}/reports`, label: "Reports & exports", icon: "reports" },
   ];

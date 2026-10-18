@@ -30,6 +30,20 @@ export async function getOrgPageAccess(slug: string): Promise<OrgAccess> {
   }
 }
 
+/**
+ * Load the record a page is about. A record that does not exist, is outside
+ * the member's areas, or needs a permission the member lacks renders the
+ * org's not-found page inside the workspace, without saying which.
+ */
+export async function getPageRecord<T>(load: Promise<T>): Promise<T> {
+  try {
+    return await load;
+  } catch (err) {
+    if ((err instanceof DomainError && err.status === 404) || (err instanceof AccessError && (err.status === 403 || err.status === 404))) notFound();
+    throw err;
+  }
+}
+
 // ── Server actions ────────────────────────────────────────────
 
 export type ActionResult<T = undefined> =

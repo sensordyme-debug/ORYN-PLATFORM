@@ -6,7 +6,7 @@ import { AOI_KIND_LABEL } from "@/lib/aoi-config";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
 import { formatArea, formatLatLon } from "@/lib/geo";
 import { getAoi } from "@/server/aois/service";
-import { getOrgPageAccess } from "@/server/authz/next";
+import { getOrgPageAccess, getPageRecord } from "@/server/authz/next";
 import { listRuns } from "@/server/jobs/views";
 import { providerAvailabilityMap } from "@/server/providers/availability";
 import { listReferenceLayers } from "@/server/reference/service";
@@ -27,7 +27,7 @@ function keyMetric(kind: string, m: Record<string, unknown>): string {
 export default async function AreaDetailPage(props: PageProps<"/app/[org]/areas/[id]">) {
   const { org, id } = await props.params;
   const access = await getOrgPageAccess(org);
-  const aoi = await getAoi(access, id);
+  const aoi = await getPageRecord(getAoi(access, id));
   const [obs, runs, layers] = await Promise.all([
     listObservations(access, id, { limit: 300 }),
     access.can("results.read") ? listRuns(access, { aoiId: id, limit: 30 }) : [],
@@ -92,7 +92,7 @@ export default async function AreaDetailPage(props: PageProps<"/app/[org]/areas/
                   <li key={l.id} className="flex items-start justify-between gap-2 rounded-[3px] border border-bone-50/[0.07] px-3 py-2">
                     <span>
                       {l.name}
-                      <span className="block text-[0.75rem] text-bone-50/45">{l.kind} · {l.featureCount} features · {l.license ?? "licence unknown"}{l.redistribution ? ` · ${l.redistribution}` : ""}</span>
+                      <span className="block text-[0.75rem] text-bone-50/55">{l.kind} · {l.featureCount} features · {l.license ?? "licence unknown"}{l.redistribution ? ` · ${l.redistribution}` : ""}</span>
                     </span>
                     {access.can("layers.manage") ? <DeleteLayerButton slug={org} layerId={l.id} /> : null}
                   </li>
@@ -107,7 +107,7 @@ export default async function AreaDetailPage(props: PageProps<"/app/[org]/areas/
         {obs.length === 0 ? (
           <EmptyState title="No observations yet" className="m-4">Observations appear after the worker finds and analyzes imagery for this area.</EmptyState>
         ) : (
-          <Table>
+          <Table label="Observation history">
             <thead><tr><th className={th}>Acquired</th><th className={th}>Measure</th><th className={th}>Result</th><th className={th}>Quality</th><th className={th}>Source</th><th className={th}>Method</th><th className={th}>Processed</th></tr></thead>
             <tbody>
               {obs.map((o) => (
@@ -115,8 +115,8 @@ export default async function AreaDetailPage(props: PageProps<"/app/[org]/areas/
                   <td className={`${td} whitespace-nowrap`}><Link href={`/app/${org}/map?aoi=${aoi.id}&obs=${o.id}`} className="hover:underline">{formatDateTime(o.observedAt, tz)}</Link></td>
                   <td className={td}>{o.kind.toUpperCase().replace("_", " ")}<div className="mt-1"><ResultClassBadge resultClass={o.resultClass} /></div></td>
                   <td className={td}>{o.status === "valid" ? keyMetric(o.kind, o.metrics) : <span className="text-data-amber">Unusable — {o.quality.unusable_reason ?? "insufficient data"}</span>}</td>
-                  <td className={td}>covers {formatPercent(o.quality.coverage_fraction)} · masked {formatPercent(o.quality.masked_fraction)}{o.quality.flags?.length ? <span className="block text-[0.6875rem] text-bone-50/45">{o.quality.flags.join(", ")}</span> : null}</td>
-                  <td className={td}>{o.asset.platform ?? o.asset.collection}<span className="block text-[0.6875rem] text-bone-50/45">{o.asset.gsdM} m · {o.asset.providerId}</span></td>
+                  <td className={td}>covers {formatPercent(o.quality.coverage_fraction)} · masked {formatPercent(o.quality.masked_fraction)}{o.quality.flags?.length ? <span className="block text-[0.6875rem] text-bone-50/55">{o.quality.flags.join(", ")}</span> : null}</td>
+                  <td className={td}>{o.asset.platform ?? o.asset.collection}<span className="block text-[0.6875rem] text-bone-50/55">{o.asset.gsdM} m · {o.asset.providerId}</span></td>
                   <td className={td}><code className="text-[0.6875rem]">{o.modelId}@{o.modelVersion}</code></td>
                   <td className={td}>{formatDateTime(o.processedAt, tz)}</td>
                 </tr>
@@ -127,7 +127,7 @@ export default async function AreaDetailPage(props: PageProps<"/app/[org]/areas/
       </Panel>
       {runs.length ? (
         <Panel title="Analysis runs" bodyClassName="p-0">
-          <Table>
+          <Table label="Analysis runs">
             <thead><tr><th className={th}>Started</th><th className={th}>Model</th><th className={th}>Outcome</th><th className={th}>Notes</th></tr></thead>
             <tbody>
               {runs.map((r) => (

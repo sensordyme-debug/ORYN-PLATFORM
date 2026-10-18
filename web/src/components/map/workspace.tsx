@@ -21,6 +21,7 @@ import { cn } from "@/lib/cn";
 import { formatDate, relativeTime } from "@/lib/format";
 import { bboxOf, formatArea, metersPerPixel, parseCoordinates, type Geometry, type PolygonGeometry } from "@/lib/geo";
 import type { MapBasemap, MapOverlay } from "@/lib/map-layer-types";
+import { orgProfile } from "@/lib/org-profile";
 import { FEED_STATE_LABEL, PUBLIC_EVENT_LAYER_IDS, PUBLIC_EVENT_LAYERS, type FeedState, type PublicEventLayerId, type PublicEventsResponse } from "@/lib/public-events";
 import { SCENE_IMAGERY_KINDS, SCENE_VERIFICATION, type ScenePreset, type SceneState, type SceneStateInput } from "@/lib/scenes";
 
@@ -409,8 +410,8 @@ export function MapWorkspace(props: WorkspaceProps) {
       {/* Left panel */}
       <aside className={cn("absolute inset-y-0 left-0 z-20 flex w-[300px] max-w-[85vw] flex-col border-r border-bone-50/[0.08] bg-ink-950/95 backdrop-blur transition-transform lg:static lg:translate-x-0", leftOpen ? "translate-x-0" : "-translate-x-full lg:hidden")}>
         <form onSubmit={runSearch} className="flex items-center gap-2 border-b border-bone-50/[0.08] p-3" role="search">
-          <Search className="size-4 shrink-0 text-bone-50/45" aria-hidden="true" />
-          <input aria-label="Search places, addresses, coordinates, or saved areas" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Place, address, lat, lon, or area" className="min-w-0 flex-1 bg-transparent text-[0.8125rem] placeholder:text-bone-50/30 focus:outline-none" />
+          <Search className="size-4 shrink-0 text-bone-50/55" aria-hidden="true" />
+          <input aria-label="Search places, addresses, coordinates, or saved areas" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Place, address, lat, lon, or area" className="min-w-0 flex-1 bg-transparent text-[0.8125rem] placeholder:text-bone-50/50 focus:outline-none" />
         </form>
         {results ? (
           <div className="border-b border-bone-50/[0.08] p-2">
@@ -427,7 +428,7 @@ export function MapWorkspace(props: WorkspaceProps) {
                 }}
               >
                 <span className="block text-bone-50/85">{r.label}</span>
-                <span className="text-bone-50/40">{r.source}</span>
+                <span className="text-bone-50/55">{r.source}</span>
               </button>
             ))}
           </div>
@@ -444,7 +445,7 @@ export function MapWorkspace(props: WorkspaceProps) {
             <div className="flex flex-col">
               {perms.write ? (
                 <div className="flex flex-wrap gap-1 border-b border-bone-50/[0.06] p-2">
-                  <p className="w-full px-1 pb-1 text-[0.6875rem] text-bone-50/45">Draw a new area</p>
+                  <p className="w-full px-1 pb-1 text-[0.6875rem] text-bone-50/55">Draw a new area</p>
                   {([
                     ["polygon", Pentagon, "Polygon"],
                     ["rectangle", Square, "Rectangle"],
@@ -464,7 +465,7 @@ export function MapWorkspace(props: WorkspaceProps) {
                     <button onClick={() => selectAoi(f.properties.id)} className={cn("flex w-full items-start justify-between gap-2 border-b border-bone-50/[0.05] px-3 py-2 text-left hover:bg-bone-50/[0.03]", selAoi === f.properties.id && "bg-bone-50/[0.06]")}>
                       <span className="min-w-0">
                         <span className="block truncate text-[0.8125rem]">{f.properties.name}</span>
-                        <span className="block text-[0.6875rem] text-bone-50/45">{AOI_KIND_LABEL[f.properties.kind as AoiKind] ?? f.properties.kind} · {formatArea(f.properties.area_m2)}</span>
+                        <span className="block text-[0.6875rem] text-bone-50/55">{AOI_KIND_LABEL[f.properties.kind as AoiKind] ?? f.properties.kind} · {formatArea(f.properties.area_m2)}</span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
                         {f.properties.open_alerts ? <Badge tone="alert">{f.properties.open_alerts} alert{f.properties.open_alerts > 1 ? "s" : ""}</Badge> : null}
@@ -480,36 +481,36 @@ export function MapWorkspace(props: WorkspaceProps) {
           ) : tab === "layers" ? (
             <div className="flex flex-col gap-5 p-3 text-[0.8125rem]">
               <fieldset>
-                <legend className="t-eyebrow mb-2 text-bone-50/45">View</legend>
+                <legend className="t-eyebrow mb-2 text-bone-50/55">View</legend>
                 {([
                   ["mercator", "Flat map (2D)", "For field boundaries, imagery, and measurement."],
                   ["globe", "Globe (3D overview)", "Global context at low zoom; it flattens as you zoom in. Drawing and editing switch to the flat map."],
                 ] as const).map(([v, label, note]) => (
                   <label key={v} className="flex items-start gap-2 py-1">
                     <input type="radio" name="projection" className="mt-1" checked={projection === v} onChange={() => setProjection(v)} />
-                    <span><span className="block">{label}</span><span className="block text-[0.6875rem] text-bone-50/45">{note}</span></span>
+                    <span><span className="block">{label}</span><span className="block text-[0.6875rem] text-bone-50/55">{note}</span></span>
                   </label>
                 ))}
               </fieldset>
               <fieldset>
-                <legend className="t-eyebrow mb-2 text-bone-50/45">Basemap</legend>
+                <legend className="t-eyebrow mb-2 text-bone-50/55">Basemap</legend>
                 {props.basemaps.map((b) => (
                   <label key={b.id} className="flex items-start gap-2 py-1">
                     <input type="radio" name="basemap" checked={basemapId === b.id} onChange={() => setBasemapId(b.id)} className="mt-1" disabled={Boolean(drawMode || edit)} />
                     <span>
                       <span className="block">{b.label}</span>
-                      <span className="block text-[0.6875rem] text-bone-50/45">{b.attribution}</span>
-                      {b.notes ? <span className="block text-[0.6875rem] text-bone-50/45">{b.notes}</span> : null}
+                      <span className="block text-[0.6875rem] text-bone-50/55">{b.attribution}</span>
+                      {b.notes ? <span className="block text-[0.6875rem] text-bone-50/55">{b.notes}</span> : null}
                     </span>
                   </label>
                 ))}
               </fieldset>
               <fieldset>
-                <legend className="t-eyebrow mb-2 text-bone-50/45">Overlays</legend>
+                <legend className="t-eyebrow mb-2 text-bone-50/55">Overlays</legend>
                 {props.overlays.map((o) => (
                   <label key={o.id} className="flex items-start gap-2 py-1">
                     <input type="checkbox" className="mt-1" checked={overlayIds.includes(o.id)} onChange={(e) => setOverlayIds((ids) => (e.target.checked ? [...ids, o.id] : ids.filter((i) => i !== o.id)))} />
-                    <span><span className="block">{o.label}</span><span className="block text-[0.6875rem] text-bone-50/45">{o.notes ?? o.attribution}</span></span>
+                    <span><span className="block">{o.label}</span><span className="block text-[0.6875rem] text-bone-50/55">{o.notes ?? o.attribution}</span></span>
                   </label>
                 ))}
                 <label className="flex items-center gap-2 py-1"><input type="checkbox" checked={showAois} onChange={(e) => setShowAois(e.target.checked)} /> Areas of interest</label>
@@ -517,8 +518,8 @@ export function MapWorkspace(props: WorkspaceProps) {
               </fieldset>
               {/* min-w-0: a fieldset otherwise grows to its longest (truncated) row and the panel scrolls sideways. */}
               <fieldset className="min-w-0">
-                <legend className="t-eyebrow mb-2 text-bone-50/45">Public events</legend>
-                <p className="mb-1 text-[0.6875rem] text-bone-50/45">Public records shown for context — not ORYN findings, and never added to alerts automatically.</p>
+                <legend className="t-eyebrow mb-2 text-bone-50/55">Public events</legend>
+                <p className="mb-1 text-[0.6875rem] text-bone-50/55">Public records shown for context — not ORYN findings, and never added to alerts automatically.</p>
                 {PUBLIC_EVENT_LAYER_IDS.map((id) => {
                   const l = PUBLIC_EVENT_LAYERS[id];
                   const on = eventIds.includes(id);
@@ -540,12 +541,12 @@ export function MapWorkspace(props: WorkspaceProps) {
                             </span>
                             {st ? <Badge tone={FEED_TONE[st]}>{FEED_STATE_LABEL[st]}</Badge> : null}
                           </span>
-                          <span className="block text-[0.6875rem] text-bone-50/45">
+                          <span className="block text-[0.6875rem] text-bone-50/55">
                             {l.geometry === "point" ? "Ring size = magnitude · " : "Hatched = reported perimeter · "}
                             {l.attribution}
                           </span>
                           {on && d?.res && d.res.feed.state !== "disabled" && d.res.feed.state !== "unavailable" ? (
-                            <span className="block text-[0.6875rem] text-bone-50/45">
+                            <span className="block text-[0.6875rem] text-bone-50/55">
                               {d.res.total} in view{d.res.feed.retrievedAt ? ` · retrieved ${relativeTime(d.res.feed.retrievedAt)}` : ""}
                             </span>
                           ) : null}
@@ -563,7 +564,7 @@ export function MapWorkspace(props: WorkspaceProps) {
                                 {f.properties.layer === "usgs-earthquakes"
                                   ? `M${f.properties.magnitude.toFixed(1)} · ${f.properties.place ?? "Unknown place"}`
                                   : `${f.properties.title}${f.properties.acres !== null ? ` · ${Math.round(f.properties.acres).toLocaleString("en-US")} ac` : ""}`}
-                                {f.properties.observedAt ? <span className="text-bone-50/40"> · {relativeTime(f.properties.observedAt)}</span> : null}
+                                {f.properties.observedAt ? <span className="text-bone-50/55"> · {relativeTime(f.properties.observedAt)}</span> : null}
                               </button>
                             </li>
                           ))}
@@ -582,17 +583,17 @@ export function MapWorkspace(props: WorkspaceProps) {
                 })}
               </fieldset>
               <fieldset>
-                <legend className="t-eyebrow mb-2 text-bone-50/45">Reference layers</legend>
-                {refLayers.length === 0 ? <p className="text-[0.75rem] text-bone-50/45">None yet. Import OpenStreetMap context or upload permits/parcels from an area&apos;s page.</p> : null}
+                <legend className="t-eyebrow mb-2 text-bone-50/55">Reference layers</legend>
+                {refLayers.length === 0 ? <p className="text-[0.75rem] text-bone-50/55">None yet. Import OpenStreetMap context or upload permits/parcels from an area&apos;s page.</p> : null}
                 {refLayers.map((l) => (
                   <label key={l.id} className="flex items-start gap-2 py-1">
                     <input type="checkbox" className="mt-1" checked={refData.some((d) => d.id === l.id)} onChange={(e) => toggleReference(l.id, e.target.checked)} />
-                    <span><span className="block">{l.name}</span><span className="block text-[0.6875rem] text-bone-50/45">{l.kind} · {l.featureCount} features{l.attribution ? ` · ${l.attribution}` : ""}</span></span>
+                    <span><span className="block">{l.name}</span><span className="block text-[0.6875rem] text-bone-50/55">{l.kind} · {l.featureCount} features{l.attribution ? ` · ${l.attribution}` : ""}</span></span>
                   </label>
                 ))}
               </fieldset>
               <div>
-                <p className="t-eyebrow mb-2 text-bone-50/45">Change legend</p>
+                <p className="t-eyebrow mb-2 text-bone-50/55">Change legend</p>
                 <DetectionLegend />
               </div>
             </div>
@@ -641,7 +642,7 @@ export function MapWorkspace(props: WorkspaceProps) {
                         <span aria-hidden="true" className="size-2 shrink-0 rounded-[1px]" style={{ background: (DETECTION_COLORS[f.properties.type] ?? DETECTION_COLORS.other!).color }} />
                         <span className="truncate">{f.properties.title}</span>
                       </span>
-                      <span className="text-[0.6875rem] text-bone-50/45">
+                      <span className="text-[0.6875rem] text-bone-50/55">
                         {f.properties.aoi_name} · {f.properties.comparison_observed_at ? formatDate(f.properties.comparison_observed_at, timeZone) : "—"} · {f.properties.evidence_grade} evidence · {f.properties.verification_status.replace(/_/g, " ")}
                       </span>
                     </button>
@@ -870,7 +871,7 @@ export function MapWorkspace(props: WorkspaceProps) {
               <NewAoiPanel
                 slug={slug}
                 geometry={draft}
-                defaultKind={props.orgKind === "agriculture" ? "field" : "region"}
+                defaultKind={orgProfile(props.orgKind).defaultAoiKind}
                 parents={parents}
                 onCancel={() => {
                   setDraft(null);
@@ -964,7 +965,7 @@ export function MapWorkspace(props: WorkspaceProps) {
             ) : null}
             {active && !draft ? (
               <div className="border-t border-bone-50/[0.08] p-4">
-                <p className="t-eyebrow mb-2 text-bone-50/45">Displayed imagery</p>
+                <p className="t-eyebrow mb-2 text-bone-50/55">Displayed imagery</p>
                 <ObservationMeta o={active} timeZone={timeZone} layer={layer} />
               </div>
             ) : null}

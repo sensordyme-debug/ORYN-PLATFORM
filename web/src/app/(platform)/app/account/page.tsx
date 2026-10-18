@@ -51,7 +51,7 @@ export default async function AccountPage(props: PageProps<"/app/account">) {
                 ],
               ]}
             />
-            <p className="mt-3 text-[0.75rem] text-bone-50/45">Usernames and organization roles are changed by an administrator.</p>
+            <p className="mt-3 text-[0.75rem] text-bone-50/55">Usernames and organization roles are changed by an administrator.</p>
           </Panel>
           <Panel title="Change password">
             <ChangePasswordForm next={next ?? (user.mustChangePassword ? "/app" : null)} />
