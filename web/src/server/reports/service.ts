@@ -29,6 +29,8 @@ export const reportParamsSchema = z
     to: dateParam.optional(),
     /** Set true to request the optional AI narrative; off unless requested. */
     ai_summary: z.boolean().optional(),
+    /** change_evidence reports: the season comparison to render. */
+    comparison_id: uuidSchema.optional(),
   })
   .refine((p) => !p.from || !p.to || Date.parse(p.from) < Date.parse(p.to), { message: "from must be before to", path: ["from"] })
   .refine((p) => !p.from || !p.to || Date.parse(p.to) - Date.parse(p.from) <= 2 * 366 * 86_400_000, { message: "The period may span at most two years.", path: ["to"] });
@@ -116,6 +118,20 @@ export async function createReport(access: OrgAccess, input: CreateReportInput):
       const [aoi] = await tx<{ id: string; name: string }[]>`select id, name from aois where id = ${aoiId} and org_id = ${access.org.id}`;
       if (!aoi || (visible && !visible.includes(aoi.id))) throw new DomainError("invalid_aoi", "Area of interest not found.", 422, { aoiId: "Unknown area." });
       subject = aoi.name;
+    }
+    if (type === "change_evidence") {
+      // The comparison must be finished, belong to this area, and be visible (the area check above).
+      const [cmp] = params.comparison_id
+        ? await tx<{ status: string; aoi_id: string }[]>`select status, aoi_id from comparisons where id = ${params.comparison_id} and org_id = ${access.org.id}`
+        : [];
+      if (!cmp || cmp.aoi_id !== aoiId) {
+        throw new DomainError("invalid_report", "A change evidence report needs a season comparison of this area.", 422, { comparison_id: "Unknown comparison." });
+      }
+      if (cmp.status !== "done") {
+        throw new DomainError("comparison_not_done", "The season comparison has not finished yet.", 409, { comparison_id: "Wait until the comparison has finished." });
+      }
+    } else if (params.comparison_id) {
+      throw new DomainError("invalid_report", "Only change evidence reports take a comparison.", 422, { comparison_id: "Not used by this report type." });
     }
     const stored = { ...params, scope_aoi_ids: aoiId ? null : visible };
     const title = `${REPORT_TYPE_LABEL[type]} — ${subject}`;

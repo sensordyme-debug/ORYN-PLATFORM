@@ -7,7 +7,7 @@
  * to the source table and row ids it came from. Limitations carry L… ids.
  */
 
-export const REPORT_TYPES = ["field", "aoi", "change", "weather", "municipal", "disaster", "processing", "audit"] as const;
+export const REPORT_TYPES = ["field", "aoi", "change", "weather", "municipal", "disaster", "processing", "audit", "change_evidence"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export const REPORT_TYPE_LABEL: Record<ReportType, string> = {
@@ -19,9 +19,10 @@ export const REPORT_TYPE_LABEL: Record<ReportType, string> = {
   disaster: "Disaster situation report",
   processing: "Processing history report",
   audit: "Audit trail report",
+  change_evidence: "Change evidence report",
 };
 
-export type ReportSectionKey = "observations" | "detections" | "weather" | "warnings" | "news" | "alerts" | "processing" | "audit";
+export type ReportSectionKey = "observations" | "detections" | "weather" | "warnings" | "news" | "alerts" | "processing" | "audit" | "comparison";
 
 /** Sections included per report type (sources, limitations, and evidence are always included). */
 export const REPORT_SECTIONS: Record<ReportType, ReportSectionKey[]> = {
@@ -33,6 +34,8 @@ export const REPORT_SECTIONS: Record<ReportType, ReportSectionKey[]> = {
   disaster: ["warnings", "news", "observations", "detections", "weather", "alerts"],
   processing: ["processing", "observations"],
   audit: ["audit"],
+  // One season comparison (params.comparison_id), rendered with its evidence.
+  change_evidence: ["comparison"],
 };
 
 /** Report types that need an AOI (the others may cover the whole organization). */
@@ -45,6 +48,7 @@ export const AOI_REQUIRED: Record<ReportType, boolean> = {
   disaster: true,
   processing: false,
   audit: false,
+  change_evidence: true,
 };
 
 export type DataStatus = "ok" | "missing" | "stale" | "partial";
@@ -63,6 +67,7 @@ export type EvidenceKind =
   | "processing_run"
   | "source_asset"
   | "audit"
+  | "comparison"
   | "limitation";
 
 export type EvidenceEntry = {
@@ -252,6 +257,80 @@ export type AuditEntry = {
 
 export type Finding = { id: string; section: string; text: string; evidence_ids: string[] };
 
+/** One image of a season comparison, as frozen into the report. */
+export type ComparisonImageEntry = {
+  evidence_id: string;
+  role: "baseline" | "comparison";
+  observation_id: string;
+  asset_id: string;
+  external_id: string;
+  platform: string | null;
+  acquired_at: string;
+  grid_code: string | null;
+  epsg: number | null;
+  clear_fraction: number | null;
+  coverage_fraction: number | null;
+  scene_cloud_cover: number | null;
+  license: string | null;
+  attribution: string | null;
+  stac_url: string | null;
+  true_color_key: string | null;
+  corners: [[number, number], [number, number], [number, number], [number, number]] | null;
+};
+
+export type ComparisonFindingEntry = {
+  evidence_id: string;
+  detection_id: string;
+  title: string;
+  type: string;
+  area_m2: number | null;
+  mean_delta: number | null;
+  direction: string | null;
+  pixel_count: number | null;
+  evidence_grade: string;
+  evidence_reasons: string[];
+  verification_status: string;
+  centroid: [number, number];
+  bbox: [number, number, number, number];
+  geometry: { type: string; coordinates: unknown };
+  notes: { body: string; author: string | null; created_at: string }[];
+};
+
+/** A considered image and why it was or was not used. */
+export type ComparisonConsidered = {
+  external_id: string;
+  acquired_at: string;
+  platform: string | null;
+  grid_code: string | null;
+  status: string;
+  clear_fraction: number | null;
+  decision: "chosen" | "not_chosen";
+  why: string;
+};
+
+export type ComparisonSection = {
+  evidence_id: string;
+  comparison_id: string;
+  statement: SectionStatement;
+  sensor: string;
+  provider: string;
+  periods: { baseline: { from: string; to: string }; comparison: { from: string; to: string } };
+  outcome: string;
+  outcome_label: string;
+  outcome_detail: string;
+  compared: boolean;
+  method: { model_id: string; model_version: string; name: string; description: string; threshold: number; min_area_m2: number; min_overlap: number };
+  measurements: { overlap: number | null; same_grid: boolean | null; days_between: number | null; seasonal_offset_days: number | null; coverage_fraction: number | null } | null;
+  images: { baseline: ComparisonImageEntry | null; comparison: ComparisonImageEntry | null };
+  considered: { baseline: ComparisonConsidered[]; comparison: ComparisonConsidered[] };
+  notes: string[];
+  delta: { png_key: string; corners: [[number, number], [number, number], [number, number], [number, number]] } | null;
+  findings: ComparisonFindingEntry[];
+  /** Findings beyond the per-finding pages, listed only in the table. */
+  findings_listed_only: number;
+  run_id: string | null;
+};
+
 export type ReportSummary = {
   /** 'template', 'ai:<model>', or 'template (ai_unavailable: <reason>)'. */
   method: string;
@@ -305,6 +384,8 @@ export type ReportContent = {
   alerts: { statement: SectionStatement; open: AlertEntry[] } | null;
   processing: { statement: SectionStatement; runs: ProcessingRunEntry[] } | null;
   audit: { statement: SectionStatement; events: AuditEntry[]; by_action: Record<string, number> } | null;
+  /** change_evidence reports only (absent in earlier snapshots). */
+  comparison?: ComparisonSection | null;
   sources: { assets: SourceAssetEntry[]; weather_providers: string[]; news_providers: string[]; attributions: string[] };
   limitations: { models: ModelLimitation[]; general: { id: string; text: string }[] };
   findings: Finding[];

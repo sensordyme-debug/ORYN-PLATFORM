@@ -23,7 +23,7 @@ import type { JobHandler } from "@/server/jobs/worker";
 import { orgKey, storage } from "@/server/storage";
 import { parsePayload, requireOrg } from "@/server/alerts/job-payload";
 import { buildReportContent, loadReportSource } from "@/server/reports/assemble";
-import { renderReportPdf } from "@/server/reports/pdf";
+import { renderReportPdf, type ComparisonImages } from "@/server/reports/pdf";
 import { summarizeReport, type SummaryClient } from "@/server/reports/summarize";
 import { REPORT_SECTIONS, type ReportContent, type ReportType } from "@/server/reports/types";
 
@@ -38,6 +38,26 @@ export async function loadRasterPng(orgId: string, content: ReportContent): Prom
   } catch {
     return null;
   }
+}
+
+/** The stored images a change evidence report draws, only from this org's storage prefix. */
+export async function loadComparisonImages(orgId: string, content: ReportContent): Promise<ComparisonImages> {
+  const cmp = content.comparison;
+  if (!cmp) return {};
+  const read = async (key: string | null | undefined) => {
+    if (!key || !key.startsWith(`orgs/${orgId}/`)) return null;
+    try {
+      return (await storage().get(key))?.body ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const [baseline, comparison, delta] = await Promise.all([
+    read(cmp.images.baseline?.true_color_key),
+    read(cmp.images.comparison?.true_color_key),
+    read(cmp.delta?.png_key),
+  ]);
+  return { baseline, comparison, delta };
 }
 
 export async function generateReport(
@@ -73,7 +93,7 @@ export async function generateReport(
     const content = buildReportContent(source);
     // The AI narrative is opt-in everywhere (the UI checkbox and the API alike).
     content.summary = await summarizeReport(content, { ai: params.ai_summary === true, client: deps.summaryClient });
-    const pdf = await renderReportPdf(content, { rasterPng: await loadRasterPng(orgId, content) });
+    const pdf = await renderReportPdf(content, { rasterPng: await loadRasterPng(orgId, content), comparisonImages: await loadComparisonImages(orgId, content) });
     const key = orgKey(orgId, "reports", reportId, "report.pdf");
     const { size } = await storage().put(key, pdf, "application/pdf");
     await withTenant({ orgId }, async (tx) => {

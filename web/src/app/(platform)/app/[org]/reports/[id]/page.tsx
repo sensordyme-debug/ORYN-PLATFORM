@@ -33,6 +33,38 @@ export default async function ReportPage(props: PageProps<"/app/[org]/reports/[i
               <p className="whitespace-pre-wrap text-[0.875rem] leading-relaxed">{c.summary.text}</p>
             </Panel>
           ) : null}
+          {c.comparison ? (
+            <Panel title="Season comparison" description={`${c.comparison.sensor} · ${c.comparison.method.model_id}@${c.comparison.method.model_version}`}>
+              <div className="flex flex-col gap-3 text-[0.8125rem]">
+                <div className="flex items-start gap-3">
+                  <Badge tone={c.comparison.outcome === "changes_found" ? "watch" : c.comparison.compared ? "good" : "alert"}>{c.comparison.outcome_label}</Badge>
+                  <p>{c.comparison.outcome_detail}</p>
+                </div>
+                <KeyValues
+                  items={[
+                    ["Baseline period", `${c.comparison.periods.baseline.from} – ${c.comparison.periods.baseline.to}`],
+                    ["Comparison period", `${c.comparison.periods.comparison.from} – ${c.comparison.periods.comparison.to}`],
+                    ...([c.comparison.images.baseline, c.comparison.images.comparison].filter(Boolean).map((i) => [
+                      i!.role === "baseline" ? "Baseline image" : "Comparison image",
+                      `${i!.external_id} · ${formatDateTime(i!.acquired_at, tz)} · ${i!.clear_fraction === null ? "—" : Math.round(i!.clear_fraction * 100)}% clear`,
+                    ]) as [string, string][]),
+                    ["Thresholds", `NDVI change ≥ ${c.comparison.method.threshold} over ≥ ${c.comparison.method.min_area_m2.toLocaleString("en-US")} m²`],
+                  ]}
+                />
+                {c.comparison.findings.length ? (
+                  <ul className="flex flex-col gap-1">
+                    {c.comparison.findings.map((f, i) => (
+                      <li key={f.detection_id}>
+                        <span className="t-mono mr-2 text-[0.6875rem] text-bone-50/40">{i + 1}</span>
+                        <Link className="hover:underline" href={`/app/${org}/map?detection=${f.detection_id}`}>{f.title}</Link>
+                        <span className="ml-2 text-[0.75rem] text-bone-50/50">evidence {f.evidence_grade} · {f.verification_status.replace(/_/g, " ")} [{f.evidence_id}]</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </Panel>
+          ) : null}
           <Panel title="Findings" description="Every finding cites the stored records it comes from.">
             <ul className="flex flex-col gap-2 text-[0.8125rem]">
               {c.findings.map((f) => (

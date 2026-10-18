@@ -15,7 +15,8 @@
  */
 import PDFDocument from "pdfkit";
 import { formatArea } from "@/lib/geo";
-import { REPORT_TYPE_LABEL, type DataStatus, type ReportContent } from "@/server/reports/types";
+import { MAX_FINDING_PAGES } from "@/server/reports/comparison";
+import { REPORT_TYPE_LABEL, type ComparisonSection, type DataStatus, type ReportContent } from "@/server/reports/types";
 
 type Doc = PDFKit.PDFDocument;
 type Col = { header: string; width: number; align?: "left" | "right" };
@@ -282,9 +283,257 @@ function drawMap(doc: Doc, content: ReportContent, png: Buffer | null) {
   }
 }
 
+// ── Season comparison (change evidence reports) ───────────────
+
+/** Stored PNGs a change evidence report draws (true colour of both images, ΔNDVI). */
+export type ComparisonImages = { baseline?: Buffer | null; comparison?: Buffer | null; delta?: Buffer | null };
+
+type Corners = [[number, number], [number, number], [number, number], [number, number]];
+type View = [number, number, number, number];
+
+const extentOf = (corners: Corners): View => {
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+};
+
+/** A view around a bounding box, padded, with at least ~300 m on a side. */
+function viewAround(b: View, padFactor = 0.75): View {
+  const lat0 = (b[1] + b[3]) / 2;
+  const minDeg = 0.003;
+  const dx = Math.max(b[2] - b[0], minDeg / Math.max(Math.cos((lat0 * Math.PI) / 180), 0.2));
+  const dy = Math.max(b[3] - b[1], minDeg);
+  const pad = Math.max(dx, dy) * padFactor;
+  return [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
+}
+
+/**
+ * Draw a georeferenced PNG cropped to `view` inside a frame, with optional
+ * outlines. The frame is equirectangular (cos-latitude scaled), which is
+ * accurate enough at area scale for orientation; pixels are not resampled
+ * by ORYN (PDF viewers may smooth them).
+ */
+/** An image embedded once and drawn on many pages (pdfkit reuses an opened image object). */
+type OpenedImage = object;
+const openImage = (doc: Doc, b: Buffer | null | undefined): OpenedImage | null => {
+  if (!b) return null;
+  try {
+    return (doc as unknown as { openImage(src: Buffer): OpenedImage }).openImage(b);
+  } catch {
+    return null;
+  }
+};
+
+function drawGeoImage(
+  doc: Doc,
+  image: OpenedImage | null,
+  corners: Corners | null,
+  view: View,
+  frame: { x: number; y: number; w: number; h: number },
+  outlines: { rings: Ring[][]; color: string; width?: number; label?: string; at?: [number, number] }[],
+) {
+  const lat0 = (view[1] + view[3]) / 2;
+  const kx = Math.cos((lat0 * Math.PI) / 180);
+  const spanX = Math.max((view[2] - view[0]) * kx, 1e-9);
+  const spanY = Math.max(view[3] - view[1], 1e-9);
+  const scale = Math.min(frame.w / spanX, frame.h / spanY);
+  const ox = frame.x + (frame.w - spanX * scale) / 2;
+  const oy = frame.y + (frame.h - spanY * scale) / 2;
+  const px = (lon: number) => ox + (lon - view[0]) * kx * scale;
+  const py = (lat: number) => oy + (view[3] - lat) * scale;
+  doc.save();
+  doc.rect(frame.x, frame.y, frame.w, frame.h).fill("#e5e7eb");
+  doc.rect(frame.x, frame.y, frame.w, frame.h).clip();
+  let drawn = false;
+  if (image && corners) {
+    const e = extentOf(corners);
+    try {
+      doc.image(image as Buffer, px(e[0]), py(e[3]), { width: px(e[2]) - px(e[0]), height: py(e[1]) - py(e[3]) });
+      drawn = true;
+    } catch {
+      drawn = false;
+    }
+  }
+  for (const o of outlines) {
+    doc.lineWidth(o.width ?? 1.2).strokeColor(o.color);
+    for (const poly of o.rings) {
+      for (const ring of poly) {
+        ring.forEach(([x, y], i) => (i ? doc.lineTo(px(x), py(y)) : doc.moveTo(px(x), py(y))));
+        doc.closePath().stroke();
+      }
+    }
+    if (o.label && o.at) {
+      doc.font("Helvetica-Bold").fontSize(8).fillColor(o.color).text(pdfSafe(o.label), px(o.at[0]) + 3, py(o.at[1]) - 4, { lineBreak: false });
+    }
+  }
+  doc.restore();
+  doc.rect(frame.x, frame.y, frame.w, frame.h).lineWidth(0.5).strokeColor(COLORS.rule).stroke();
+  if (!drawn) {
+    doc.font("Helvetica").fontSize(7).fillColor(COLORS.muted).text("Image not available", frame.x + 4, frame.y + 4, { width: frame.w - 8 });
+  }
+  return drawn;
+}
+
+const FINDING_COLOR = "#facc15";
+
+function drawComparison(doc: Doc, c: ReportContent, cmp: ComparisonSection, buffers: ComparisonImages) {
+  const imgs = { baseline: openImage(doc, buffers.baseline), comparison: openImage(doc, buffers.comparison), delta: openImage(doc, buffers.delta) };
+  h2(doc, "Season comparison");
+  statement(doc, cmp.statement);
+  const outcomeBox = pdfSafe(`${cmp.outcome_label}. ${cmp.outcome_detail}`);
+  doc.font("Helvetica-Bold").fontSize(9.5);
+  const bh = doc.heightOfString(outcomeBox, { width: contentWidth(doc) - 16 }) + 12;
+  ensure(doc, bh + 4);
+  const by = doc.y;
+  const color = cmp.compared ? COLORS.accent : STATUS_COLOR.missing;
+  doc.rect(MARGIN, by, contentWidth(doc), bh).lineWidth(1).strokeColor(color).stroke();
+  doc.fillColor(color).text(outcomeBox, MARGIN + 8, by + 6, { width: contentWidth(doc) - 16 });
+  doc.y = by + bh + 6;
+  kv(doc, [
+    ["Baseline period", `${cmp.periods.baseline.from} to ${cmp.periods.baseline.to}`],
+    ["Comparison period", `${cmp.periods.comparison.from} to ${cmp.periods.comparison.to}`],
+    ["Sensor", `${cmp.sensor} — ${cmp.provider}`],
+    ["Method", `${cmp.method.name} (${cmp.method.model_id}@${cmp.method.model_version})`],
+    ["Thresholds", `NDVI change >= ${cmp.method.threshold}; region >= ${formatArea(cmp.method.min_area_m2)}; at least ${Math.round(cmp.method.min_overlap * 100)}% of the area clear in both images`],
+    ...(cmp.measurements
+      ? ([
+          ["Clear in both images", pctOf(cmp.measurements.overlap)],
+          ["Area covered by the tile", pctOf(cmp.measurements.coverage_fraction)],
+          ["Pixel grid", cmp.measurements.same_grid === null ? "-" : cmp.measurements.same_grid ? "Same grid (no resampling)" : "Different grids (baseline resampled)"],
+          ["Time between images", cmp.measurements.days_between === null ? "-" : `${cmp.measurements.days_between} days; ${cmp.measurements.seasonal_offset_days ?? "-"} days apart in the season`],
+        ] as [string, string][])
+      : []),
+    ["Evidence", cmp.evidence_id],
+  ]);
+  para(doc, cmp.method.description, { size: 7.5, color: COLORS.muted });
+
+  const pair = [cmp.images.baseline, cmp.images.comparison].filter((i): i is NonNullable<typeof i> => Boolean(i));
+  if (pair.length) {
+    h3(doc, "Images compared");
+    table(
+      doc,
+      [
+        { header: "Role", width: 0.8 },
+        { header: "Scene", width: 2.2 },
+        { header: "Acquired", width: 1.2 },
+        { header: "Clear / covered", width: 1 },
+        { header: "Tile (EPSG)", width: 1 },
+        { header: "Licence", width: 1.4 },
+        { header: "Evidence", width: 0.6 },
+      ],
+      pair.map((i) => [
+        i.role,
+        `${i.external_id}${i.platform ? ` (${i.platform})` : ""}`,
+        dt(i.acquired_at),
+        `${pctOf(i.clear_fraction)} / ${pctOf(i.coverage_fraction)}`,
+        `${i.grid_code ?? "-"} (${i.epsg ?? "-"})`,
+        i.license ?? "not recorded",
+        i.evidence_id,
+      ]),
+    );
+  }
+
+  // Overview of the area with the findings outlined on the comparison image.
+  const after = cmp.images.comparison;
+  const aoiPolys = polygonsOf(c.aoi?.geometry ?? null);
+  if (after?.corners && c.aoi?.bbox) {
+    ensure(doc, 300);
+    h3(doc, "Overview: comparison image with candidate changes outlined");
+    const top = doc.y;
+    drawGeoImage(doc, imgs.comparison ?? null, after.corners, viewAround(c.aoi.bbox as View, 0.08), { x: MARGIN, y: top, w: contentWidth(doc), h: 260 }, [
+      { rings: aoiPolys, color: COLORS.aoi, width: 1.2 },
+      ...cmp.findings.map((f, i) => ({ rings: polygonsOf(f.geometry), color: FINDING_COLOR, width: 1.4, label: String(i + 1), at: [f.bbox[2], f.bbox[3]] as [number, number] })),
+    ]);
+    doc.y = top + 266;
+    para(doc, `True colour, ${after.external_id}, acquired ${dt(after.acquired_at)}. Orange: area boundary. Yellow: candidate changes, numbered as in the table. Sentinel-2 true colour has 10 m pixels.`, { size: 7.5, color: COLORS.muted });
+  }
+
+  if (cmp.findings.length) {
+    h3(doc, "Candidate changes");
+    table(
+      doc,
+      [
+        { header: "#", width: 0.3 },
+        { header: "Finding", width: 2.4 },
+        { header: "Area", width: 0.9, align: "right" },
+        { header: "Mean NDVI change", width: 0.9, align: "right" },
+        { header: "Evidence grade", width: 0.8 },
+        { header: "Review", width: 0.9 },
+        { header: "Evidence", width: 0.6 },
+      ],
+      cmp.findings.map((f, i) => [
+        String(i + 1),
+        f.title,
+        f.area_m2 === null ? "-" : formatArea(f.area_m2),
+        n(f.mean_delta, 2),
+        f.evidence_grade,
+        f.verification_status.replace(/_/g, " "),
+        f.evidence_id,
+      ]),
+    );
+    if (cmp.findings_listed_only > 0) para(doc, `The ${cmp.findings_listed_only} smallest findings are listed above only; each of the first ${MAX_FINDING_PAGES} has its own page.`, { size: 7.5, color: COLORS.muted });
+  }
+
+  cmp.findings.slice(0, MAX_FINDING_PAGES).forEach((f, i) => {
+    doc.addPage();
+    h2(doc, `Finding ${i + 1} of ${cmp.findings.length}: ${f.title}`);
+    para(doc, "A candidate change is a measured difference in NDVI between two satellite images. It does not establish what happened on the ground; review it, usually with a field check, before acting.", { size: 8, color: COLORS.muted });
+    kv(doc, [
+      ["Location", `${n(f.centroid[1], 5)}, ${n(f.centroid[0], 5)} (lat, lon of the centre)`],
+      ["Area", f.area_m2 === null ? "-" : `${formatArea(f.area_m2)}${f.pixel_count ? ` (${f.pixel_count} pixels of 10 m)` : ""}`],
+      ["Mean NDVI change", `${n(f.mean_delta, 3)}${f.direction ? ` (${f.direction})` : ""}`],
+      ["Evidence grade", f.evidence_grade],
+      ["Review", f.verification_status.replace(/_/g, " ")],
+      ["Evidence", f.evidence_id],
+    ]);
+    h3(doc, "Why this grade");
+    for (const r of f.evidence_reasons) para(doc, `- ${r}`, { size: 8.5 });
+    ensure(doc, 230);
+    const top = doc.y + 4;
+    const gap = 8;
+    const w = (contentWidth(doc) - 2 * gap) / 3;
+    const view = viewAround(f.bbox);
+    const rings = polygonsOf(f.geometry);
+    const panels: { title: string; image: OpenedImage | null; corners: Corners | null }[] = [
+      { title: `Before: ${d10(cmp.images.baseline?.acquired_at)}`, image: imgs.baseline ?? null, corners: cmp.images.baseline?.corners ?? null },
+      { title: `After: ${d10(cmp.images.comparison?.acquired_at)}`, image: imgs.comparison ?? null, corners: cmp.images.comparison?.corners ?? null },
+      { title: "NDVI change (red: decrease, green: increase)", image: imgs.delta ?? null, corners: cmp.delta?.corners ?? null },
+    ];
+    panels.forEach((pnl, k) => {
+      const x = MARGIN + k * (w + gap);
+      doc.font("Helvetica-Bold").fontSize(7.5).fillColor(COLORS.text).text(pdfSafe(pnl.title), x, top, { width: w });
+      drawGeoImage(doc, pnl.image, pnl.corners, view, { x, y: top + 12, w, h: w }, [{ rings, color: FINDING_COLOR, width: 1.4 }]);
+    });
+    doc.y = top + 12 + w + 6;
+    para(doc, "Crops of the stored images at their native 10 m pixels (true colour for before and after). The yellow outline is the candidate region.", { size: 7.5, color: COLORS.muted });
+    if (f.notes.length) {
+      h3(doc, "Review notes");
+      for (const note of f.notes) para(doc, `${dt(note.created_at)}${note.author ? ` — ${note.author}` : ""}: ${clip(note.body, 600)}`, { size: 8.5 });
+    }
+  });
+
+  for (const which of ["baseline", "comparison"] as const) {
+    const list = cmp.considered[which];
+    if (!list.length) continue;
+    h3(doc, `Images considered in the ${which} period`);
+    table(
+      doc,
+      [
+        { header: "Acquired", width: 1 },
+        { header: "Scene", width: 2 },
+        { header: "Clear", width: 0.6, align: "right" },
+        { header: "Decision", width: 3.2 },
+      ],
+      list.map((d) => [d10(d.acquired_at), d.external_id, pctOf(d.clear_fraction), d.why]),
+      7,
+    );
+  }
+  for (const note of cmp.notes) para(doc, note, { size: 7.5, color: COLORS.muted });
+}
+
 // ── Document ───────────────────────────────────────────────────
 
-export async function renderReportPdf(content: ReportContent, opts: { rasterPng?: Buffer | null } = {}): Promise<Buffer> {
+export async function renderReportPdf(content: ReportContent, opts: { rasterPng?: Buffer | null; comparisonImages?: ComparisonImages } = {}): Promise<Buffer> {
   const doc = new PDFDocument({
     size: "LETTER",
     margins: { top: MARGIN, bottom: MARGIN + 10, left: MARGIN, right: MARGIN },
@@ -303,7 +552,7 @@ export async function renderReportPdf(content: ReportContent, opts: { rasterPng?
     doc.on("error", reject);
   });
 
-  renderBody(doc, content, opts.rasterPng ?? null);
+  renderBody(doc, content, opts.rasterPng ?? null, opts.comparisonImages ?? {});
 
   // Footer on every page (margins lifted so writing in the footer band never adds a page).
   const range = doc.bufferedPageRange();
@@ -323,7 +572,7 @@ export async function renderReportPdf(content: ReportContent, opts: { rasterPng?
   return done;
 }
 
-function renderBody(doc: Doc, c: ReportContent, png: Buffer | null) {
+function renderBody(doc: Doc, c: ReportContent, png: Buffer | null, comparisonImages: ComparisonImages = {}) {
   // Title block
   doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.accent).text("ORYN", MARGIN, MARGIN);
   doc.moveDown(0.2);
@@ -357,7 +606,8 @@ function renderBody(doc: Doc, c: ReportContent, png: Buffer | null) {
     para(doc, `Summary method: ${c.summary.method}. Bracketed ids refer to the evidence index at the end of this report.`, { size: 7.5, color: COLORS.muted });
   }
 
-  drawMap(doc, c, png);
+  if (c.comparison) drawComparison(doc, c, c.comparison, comparisonImages);
+  else drawMap(doc, c, png);
 
   if (c.observations) {
     h2(doc, "Observations");

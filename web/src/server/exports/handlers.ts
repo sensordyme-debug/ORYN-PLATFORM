@@ -40,7 +40,7 @@ import {
 import { float32FromLittleEndian, GEOTIFF_CONTENT_TYPE, writeFloat32GeoTiff } from "@/server/exports/geotiff";
 import { collectLicenseNotes, type LicenseAsset } from "@/server/exports/licenses";
 import { exportParamsSchema, type ExportSubject, type ExportType } from "@/server/exports/service";
-import { loadRasterPng } from "@/server/reports/handlers";
+import { loadComparisonImages, loadRasterPng } from "@/server/reports/handlers";
 import { renderReportPdf } from "@/server/reports/pdf";
 import type { ReportContent } from "@/server/reports/types";
 
@@ -292,7 +292,7 @@ async function buildPdf(c: Ctx): Promise<Built> {
     select id, aoi_id, status, content, title from reports where id = ${c.params.reportId ?? null} and org_id = ${c.orgId}`;
   if (!r || r.status !== "ready" || !r.content) throw new PermanentJobError("The report is not ready.");
   if (c.scope && r.aoi_id && !c.scope.includes(r.aoi_id)) throw new PermanentJobError("Report is outside the export scope.");
-  const body = await renderReportPdf(r.content, { rasterPng: await loadRasterPng(c.orgId, r.content) });
+  const body = await renderReportPdf(r.content, { rasterPng: await loadRasterPng(c.orgId, r.content), comparisonImages: await loadComparisonImages(c.orgId, r.content) });
   const licenseNotes = [
     ...new Set([
       ...collectLicenseNotes({

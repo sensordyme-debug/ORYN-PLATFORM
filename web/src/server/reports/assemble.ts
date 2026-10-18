@@ -14,12 +14,13 @@
  *    publishing domains per story).
  *  - All queries filter by org_id explicitly in addition to RLS.
  */
-import { currentModelKeys } from "@/server/analytics/registry";
+import { ANALYTICS, currentModelKeys } from "@/server/analytics/registry";
 import { formatArea } from "@/lib/geo";
 import { WEATHER_VARIABLES, type ObservationQuality, type RasterRef } from "@/server/analytics/types";
 import { dailySeries, type EvalWeather } from "@/server/alerts/evaluate";
 import { WEATHER_KIND_CAVEAT } from "@/server/alerts/explain";
 import type { Tx } from "@/server/db/client";
+import { buildComparisonSection, loadComparisonForReport, type ComparisonSource } from "@/server/reports/comparison";
 import type {
   AlertEntry,
   AuditEntry,
@@ -189,6 +190,8 @@ export type ReportSource = {
   }[];
   models: { id: string; version: string; name: string; result_class: string; limitations: string[] }[];
   audit: { id: string; created_at: Date; actor_type: string; actor_label: string | null; action: string; target_type: string | null; target_id: string | null }[];
+  /** change_evidence: the season comparison (params.comparison_id). */
+  comparison?: ComparisonSource | null;
 };
 
 // ── Loading ────────────────────────────────────────────────────
@@ -216,8 +219,14 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
   const { orgId, aoiId } = req;
   const [clock] = await tx<{ now: Date }[]>`select now() as now`;
   const generatedAt = clock!.now;
-  const { from, to } = reportPeriod(req.params, generatedAt);
   const has = (s: ReportSectionKey) => req.sections.includes(s);
+  const comparison =
+    has("comparison") && typeof req.params.comparison_id === "string" ? await loadComparisonForReport(tx, orgId, req.params.comparison_id) : null;
+  if (has("comparison") && !comparison) throw new Error("Comparison not found for report.");
+  // A change evidence report covers its two periods.
+  const { from, to } = comparison
+    ? { from: new Date(`${comparison.baseline.from}T00:00:00Z`), to: new Date(`${comparison.comparison.to}T23:59:59Z`) }
+    : reportPeriod(req.params, generatedAt);
   // Every section query aliases its table as x.
   const aoiFilter = (q: Tx) =>
     aoiId ? q`and x.aoi_id = ${aoiId}` : req.scopeAoiIds ? q`and x.aoi_id = any(${req.scopeAoiIds}::uuid[])` : q``;
@@ -334,8 +343,14 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
          limit 500`
     : [];
 
+  const comparisonAssets = comparison ? [comparison.images.baseline?.assetId, comparison.images.comparison?.assetId].filter((x): x is string => Boolean(x)) : [];
   const assetIds = [
-    ...new Set([...observations.map((o) => o.asset_id), ...(latestValid ? [latestValid.asset_id] : []), ...detections.flatMap((d) => d.source_asset_ids)]),
+    ...new Set([
+      ...observations.map((o) => o.asset_id),
+      ...(latestValid ? [latestValid.asset_id] : []),
+      ...detections.flatMap((d) => d.source_asset_ids),
+      ...comparisonAssets,
+    ]),
   ];
   const assets = assetIds.length
     ? await tx<ReportSource["assets"]>`
@@ -351,6 +366,7 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
       ...(latestValid ? [`${latestValid.model_id}@${latestValid.model_version}`] : []),
       ...detections.filter((d) => d.model_id && d.model_version).map((d) => `${d.model_id}@${d.model_version}`),
       ...runs.map((r) => `${r.model_id}@${r.model_version}`),
+      ...(comparison ? [`${ANALYTICS["ndvi-period-change"].id}@${ANALYTICS["ndvi-period-change"].version}`] : []),
     ]),
   ];
   const models = modelKeys.length
@@ -386,6 +402,7 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
     assets,
     models,
     audit,
+    comparison,
   };
 }
 
@@ -838,8 +855,15 @@ export function buildReportContent(src: ReportSource): ReportContent {
     result_class: m.result_class,
     limitations: (m.limitations ?? []).map((text) => ({ id: ev.add("limitation", "analytic_models", [`${m.id}@${m.version}`], text), text })),
   }));
+  const comparison = has("comparison") && src.comparison ? buildComparisonSection(src.comparison, (k, t, ids, label) => ev.add(k, t, ids, label), addFinding) : null;
   const generalTexts = [
     "This report is a snapshot of the data stored in ORYN at generation time; it is not updated afterwards.",
+    ...(comparison
+      ? [
+          `Candidate changes are measured differences in NDVI between two images; they do not establish what happened on the ground. Regions smaller than ${comparison.method.min_area_m2.toLocaleString("en-US")} m² and changes below ${comparison.method.threshold} NDVI are not reported.`,
+          "ORYN has no ground-truth validation for this method, so no detection accuracy is stated.",
+        ]
+      : []),
     "Observations, model estimates, forecasts, official warnings, candidate changes, and news claims are different kinds of information and are reported separately.",
     ...(aoi?.is_synthetic ? ["The AOI boundary is a development placeholder, not a surveyed boundary."] : []),
     ...(src.org.is_synthetic ? ["This organization holds synthetic sample data for development; values are not real-world measurements."] : []),
@@ -877,6 +901,7 @@ export function buildReportContent(src: ReportSource): ReportContent {
     alerts,
     processing,
     audit,
+    comparison,
     sources: {
       assets,
       weather_providers: [...new Set(src.weather.map((w) => w.provider_id))].sort(),
