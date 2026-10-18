@@ -25,13 +25,19 @@ import { formatDateTime, relativeTime } from "@/lib/format";
 import { parseCoordinates } from "@/lib/geo";
 import {
   ENGINE_DOCUMENT,
+  ENGINE_TRAFFIC_MAX_ALTITUDE_M,
+  ENGINE_TRANSIT_MAX_ALTITUDE_M,
   NATURE_LABEL,
+  transitFeedsInView,
   zoomForHeight,
   type EngineBridge,
   type EngineFeedState,
   type EngineLayer,
   type EngineRef,
+  type EngineTransitFeed,
 } from "@/lib/intel/engine";
+
+type Camera = { lat: number; lon: number; alt: number };
 
 export type EngineWorkspaceProps = {
   slug: string;
@@ -129,6 +135,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
   const [leftOpen, setLeftOpen] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [view2d, setView2d] = useState<string | null>(null);
+  const [cam, setCam] = useState<Camera | null>(null);
 
   // 1. Check the engine service is reachable, then wait for its bridge.
   useEffect(() => {
@@ -182,7 +189,9 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
     refresh();
     const camera = () => {
       const c = bridge.getCamera();
-      if (c) setView2d(`${c.lon.toFixed(4)},${c.lat.toFixed(4)},${zoomForHeight(c.alt).toFixed(1)}`);
+      if (!c) return;
+      setView2d(`${c.lon.toFixed(4)},${c.lat.toFixed(4)},${zoomForHeight(c.alt).toFixed(1)}`);
+      setCam((p) => (p && Math.abs(p.lat - c.lat) < 1e-4 && Math.abs(p.lon - c.lon) < 1e-4 && Math.abs(p.alt - c.alt) < 1 ? p : { lat: c.lat, lon: c.lon, alt: c.alt }));
     };
     camera();
     const cameraTimer = window.setInterval(camera, 2_000);
@@ -430,7 +439,7 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
             <fieldset key={g.label} className="mb-4 min-w-0">
               <legend className="t-eyebrow mb-2 text-bone-50/55">{g.label}</legend>
               {g.items.map((l) => (
-                <LayerRow key={l.id} layer={l} busy={pending.has(l.id)} bridge={bridge} onToggle={(on) => { setMode(null); void toggleLayer(l.id, on); }} />
+                <LayerRow key={l.id} layer={l} busy={pending.has(l.id)} bridge={bridge} camera={cam} onToggle={(on) => { setMode(null); void toggleLayer(l.id, on); }} />
               ))}
             </fieldset>
           ))}
@@ -508,7 +517,63 @@ export function EngineWorkspace(props: EngineWorkspaceProps) {
   );
 }
 
-function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; busy: boolean; bridge: EngineBridge | null; onToggle: (on: boolean) => void }) {
+/** Street Traffic draws only near the ground; say so, and offer to zoom in where the camera is. */
+function TrafficGuide({ camera, bridge }: { camera: Camera | null; bridge: EngineBridge | null }) {
+  if (!camera || camera.alt <= ENGINE_TRAFFIC_MAX_ALTITUDE_M) return null;
+  return (
+    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[0.6875rem] text-bone-50/60">
+      Drawn below {ENGINE_TRAFFIC_MAX_ALTITUDE_M / 1000} km altitude.
+      <button type="button" className="underline hover:text-bone-50" disabled={!bridge} onClick={() => bridge?.flyTo({ lat: camera.lat, lon: camera.lon, range: 2_500, pitch: -45 })}>
+        Zoom in here
+      </button>
+    </span>
+  );
+}
+
+/** Transit polls only the feeds near the camera; name them, or list where live feeds exist. */
+function TransitGuide({ camera, bridge }: { camera: Camera | null; bridge: EngineBridge | null }) {
+  const [feeds, setFeeds] = useState<EngineTransitFeed[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/transit/feeds", { credentials: "same-origin", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((body: { feeds?: EngineTransitFeed[] }) => setFeeds(body.feeds ?? []))
+      .catch(() => !controller.signal.aborted && setFailed(true));
+    return () => controller.abort();
+  }, []);
+  if (failed) return <span className="block text-[0.6875rem] text-data-amber">The list of transit feeds could not be loaded.</span>;
+  if (!feeds || !camera) return null;
+  const inView = transitFeedsInView(feeds, camera);
+  if (inView.length) {
+    return (
+      <span className="block text-[0.6875rem] text-bone-50/60">
+        Live vehicles from {inView.map((f) => `${f.name} (${f.region})`).join(", ")}.
+      </span>
+    );
+  }
+  return (
+    <span className="mt-0.5 block text-[0.6875rem] text-bone-50/60">
+      {camera.alt > ENGINE_TRANSIT_MAX_ALTITUDE_M ? "Zoom in to a city with a live feed:" : "No live transit feed covers this view. Feeds:"}
+      <span className="mt-1 flex flex-wrap gap-1">
+        {feeds.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            disabled={!bridge}
+            title={`${f.name}${f.attribution ? ` · ${f.attribution}` : ""}`}
+            onClick={() => bridge?.flyTo({ lat: f.center.lat, lon: f.center.lon, range: 45_000, pitch: -50 })}
+            className="rounded-[3px] border border-bone-50/20 px-1.5 py-0.5 text-bone-50/75 hover:border-bone-50/50 disabled:opacity-45"
+          >
+            {f.region}
+          </button>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function LayerRow({ layer: l, busy, bridge, camera, onToggle }: { layer: EngineLayer; busy: boolean; bridge: EngineBridge | null; camera: Camera | null; onToggle: (on: boolean) => void }) {
   const tone = l.enabled ? STATE_TONE[l.state] : null;
   const blocked = !l.enabled && l.state === "unavailable";
   return (
@@ -539,6 +604,8 @@ function LayerRow({ layer: l, busy, bridge, onToggle }: { layer: EngineLayer; bu
           {blocked && l.requiresKeyId && !l.error ? <span className="block text-[0.6875rem] text-data-amber">Needs a provider key configured on the engine server.</span> : null}
         </span>
       </label>
+      {l.enabled && l.id === "traffic" ? <div className="ml-6"><TrafficGuide camera={camera} bridge={bridge} /></div> : null}
+      {l.enabled && l.id === "transit" ? <div className="ml-6"><TransitGuide camera={camera} bridge={bridge} /></div> : null}
       {l.enabled && l.controls ? (
         <div className="ml-6 mt-1 flex flex-col gap-1">
           {l.controls.chips.length ? (

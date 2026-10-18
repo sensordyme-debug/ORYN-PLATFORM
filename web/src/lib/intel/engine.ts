@@ -174,6 +174,38 @@ export type EngineBridge = {
   subscribe(listener: (event: EngineEvent) => void): () => void;
 };
 
+/** Street Traffic is drawn only below this camera altitude (src/layers/traffic/policy.js ACTIVATION_ALTITUDE). */
+export const ENGINE_TRAFFIC_MAX_ALTITUDE_M = 8_000;
+/** Transit idles above this altitude (src/layers/transit/policy.js ACTIVATION_ALTITUDE_M). */
+export const ENGINE_TRANSIT_MAX_ALTITUDE_M = 3_000_000;
+/** Extra radius a transit feed keeps around its load radius (src/layers/transit/policy.js RANGE_SLACK_KM). */
+export const ENGINE_TRANSIT_RANGE_SLACK_KM = 40;
+
+/** One live transit feed, as GET /api/transit/feeds lists it (src/data/transitFeeds.js). */
+export type EngineTransitFeed = {
+  id: string;
+  name: string;
+  region: string;
+  center: { lat: number; lon: number };
+  loadRadiusKm: number;
+  attribution?: string;
+};
+
+/** Great-circle distance in km. */
+export function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLon = (b.lon - a.lon) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Feeds whose vehicles the Transit layer polls for this camera position. */
+export function transitFeedsInView(feeds: EngineTransitFeed[], camera: { lat: number; lon: number; alt: number }): EngineTransitFeed[] {
+  if (camera.alt > ENGINE_TRANSIT_MAX_ALTITUDE_M) return [];
+  return feeds.filter((f) => distanceKm(camera, f.center) <= f.loadRadiusKm + ENGINE_TRANSIT_RANGE_SLACK_KM);
+}
+
 /** Height (m) for a 2D map zoom, and back: the conversion the intel page already uses. */
 export const heightForZoom = (zoom: number) => Math.round(35_000_000 / 2 ** zoom) + 2_000;
 export const zoomForHeight = (heightM: number) => Math.max(1, Math.min(18, Math.log2(35_000_000 / Math.max(heightM, 50))));
