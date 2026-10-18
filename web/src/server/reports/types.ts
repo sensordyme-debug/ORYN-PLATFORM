@@ -1,3 +1,4 @@
+import type { WaterBalance } from "@/server/agronomy/service";
 /**
  * Report content snapshot (reports.content).
  *
@@ -22,11 +23,11 @@ export const REPORT_TYPE_LABEL: Record<ReportType, string> = {
   change_evidence: "Change evidence report",
 };
 
-export type ReportSectionKey = "observations" | "detections" | "weather" | "warnings" | "news" | "alerts" | "processing" | "audit" | "comparison";
+export type ReportSectionKey = "observations" | "detections" | "weather" | "warnings" | "news" | "alerts" | "processing" | "audit" | "comparison" | "water_balance";
 
 /** Sections included per report type (sources, limitations, and evidence are always included). */
 export const REPORT_SECTIONS: Record<ReportType, ReportSectionKey[]> = {
-  field: ["observations", "detections", "weather", "warnings", "alerts", "processing"],
+  field: ["observations", "detections", "weather", "water_balance", "warnings", "alerts", "processing"],
   aoi: ["observations", "detections", "weather", "warnings", "news", "alerts", "processing"],
   change: ["observations", "detections", "alerts", "processing"],
   weather: ["weather", "warnings", "alerts"],
@@ -386,6 +387,8 @@ export type ReportContent = {
   audit: { statement: SectionStatement; events: AuditEntry[]; by_action: Record<string, number> } | null;
   /** change_evidence reports only (absent in earlier snapshots). */
   comparison?: ComparisonSection | null;
+  /** field reports: FAO-56 crop water balance through the report's end (absent in earlier snapshots). */
+  water_balance?: { statement: SectionStatement; result: WaterBalance } | null;
   sources: { assets: SourceAssetEntry[]; weather_providers: string[]; news_providers: string[]; attributions: string[] };
   limitations: { models: ModelLimitation[]; general: { id: string; text: string }[] };
   findings: Finding[];

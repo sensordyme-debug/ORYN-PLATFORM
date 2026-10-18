@@ -21,6 +21,7 @@ import { dailySeries, type EvalWeather } from "@/server/alerts/evaluate";
 import { WEATHER_KIND_CAVEAT } from "@/server/alerts/explain";
 import type { Tx } from "@/server/db/client";
 import { isFixtureProvider } from "@/lib/fixtures";
+import { waterBalanceForArea, type WaterBalance } from "@/server/agronomy/service";
 import { buildComparisonSection, loadComparisonForReport, type ComparisonSource } from "@/server/reports/comparison";
 import type {
   AlertEntry,
@@ -193,9 +194,16 @@ export type ReportSource = {
   audit: { id: string; created_at: Date; actor_type: string; actor_label: string | null; action: string; target_type: string | null; target_id: string | null }[];
   /** change_evidence: the season comparison (params.comparison_id). */
   comparison?: ComparisonSource | null;
+  /** field: the crop water balance through the report's end. */
+  waterBalance?: WaterBalance | null;
 };
 
 // ── Loading ────────────────────────────────────────────────────
+
+async function aoiMetadata(tx: Tx, orgId: string, aoiId: string): Promise<Record<string, unknown>> {
+  const [r] = await tx<{ metadata: Record<string, unknown> }[]>`select metadata from aois where id = ${aoiId} and org_id = ${orgId}`;
+  return r?.metadata ?? {};
+}
 
 export type ReportRequest = {
   orgId: string;
@@ -386,6 +394,11 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
          limit 2000`
     : [];
 
+  // Through the report's end, or through yesterday when the report runs to today.
+  const waterBalance =
+    has("water_balance") && aoiId
+      ? await waterBalanceForArea(tx, orgId, aoiId, await aoiMetadata(tx, orgId, aoiId), new Date(Math.min(generatedAt.getTime(), to.getTime() + DAY_MS)))
+      : null;
   return {
     report: { id: req.reportId, type: req.type, title: req.title, params: req.params, from, to, generatedAt },
     sections: req.sections,
@@ -404,6 +417,7 @@ export async function loadReportSource(tx: Tx, req: ReportRequest): Promise<Repo
     models,
     audit,
     comparison,
+    waterBalance,
   };
 }
 
@@ -574,6 +588,14 @@ export function buildReportContent(src: ReportSource): ReportContent {
         );
       }
     }
+    // EVI and SAVI: the latest usable value of each, from the same image family as reported.
+    for (const [kind, name] of [["evi", "EVI"], ["savi", "SAVI"]] as const) {
+      const latest = series.filter((s) => s.kind === kind && s.status === "valid" && typeof s.metrics.mean === "number").at(-1);
+      if (!latest) continue;
+      const m = latest.metrics;
+      const spread = typeof m.p10 === "number" && typeof m.p90 === "number" ? ` (10th–90th percentile ${round(m.p10)}–${round(m.p90)})` : "";
+      addFinding("observations", `Latest usable ${name} (${latest.collection}, acquired ${latest.observed_at.slice(0, 10)}): mean ${round(m.mean!)}${spread}.`, [latest.evidence_id]);
+    }
     const water = series.filter((s) => (s.kind === "ndwi" || s.kind === "s1_water") && s.status === "valid" && typeof s.metrics.water_area_m2 === "number");
     const lastWater = water[water.length - 1];
     if (lastWater) {
@@ -581,7 +603,7 @@ export function buildReportContent(src: ReportSource): ReportContent {
     }
     // Images, not observations: one image yields several analyses (NDVI, NDMI, …), and derived
     // scores (e.g. an anomaly without enough history) say nothing about the image itself.
-    const IMAGE_KINDS = new Set(["ndvi", "ndmi", "ndwi", "s1_water", "landcover"]);
+    const IMAGE_KINDS = new Set(["ndvi", "evi", "savi", "ndmi", "ndwi", "s1_water", "landcover"]);
     const images = new Map<string, typeof series>();
     for (const e of series.filter((x) => IMAGE_KINDS.has(x.kind))) images.set(e.asset_id, [...(images.get(e.asset_id) ?? []), e]);
     const unusableImages = [...images.values()].filter((es) => es.every((e) => e.status !== "valid")).map((es) => es[0]!);
@@ -857,6 +879,21 @@ export function buildReportContent(src: ReportSource): ReportContent {
     limitations: (m.limitations ?? []).map((text) => ({ id: ev.add("limitation", "analytic_models", [`${m.id}@${m.version}`], text), text })),
   }));
   const comparison = has("comparison") && src.comparison ? buildComparisonSection(src.comparison, (k, t, ids, label) => ev.add(k, t, ids, label), addFinding) : null;
+  // Crop water balance: a planning estimate, reported with its inputs, sources and limits.
+  let waterBalance: ReportContent["water_balance"] = null;
+  if (has("water_balance") && src.waterBalance) {
+    const wb = src.waterBalance;
+    waterBalance = { statement: { status: wb.status === "estimated" ? "ok" : "missing", text: wb.statusText }, result: wb };
+    addFinding("water_balance", `Crop water balance (planning estimate, ${wb.method.id}@${wb.method.version}): ${wb.statusText}`, aoi ? [aoi.evidence_id] : []);
+  }
+  const waterBalanceTexts = waterBalance
+    ? [
+        ...waterBalance.result.limitations,
+        ...(waterBalance.result.weather?.et0 && /non-commercial/i.test(waterBalance.result.weather.et0.licence)
+          ? ["The crop water balance used Open-Meteo's free API, which is licensed for non-commercial use only; this report must not be used commercially without a licensed weather source."]
+          : []),
+      ]
+    : [];
   const generalTexts = [
     "This report is a snapshot of the data stored in ORYN at generation time; it is not updated afterwards.",
     ...(comparison
@@ -876,6 +913,7 @@ export function buildReportContent(src: ReportSource): ReportContent {
       : []),
     ...(news ? [NEWS_NOTE] : []),
     ...(weather ? weather.kinds.filter((k) => k.variables.length).map((k) => k.caveat) : []),
+    ...waterBalanceTexts,
   ];
   const general = generalTexts.map((text) => ({ id: ev.add("limitation", null, [], text), text }));
 
@@ -909,6 +947,7 @@ export function buildReportContent(src: ReportSource): ReportContent {
     processing,
     audit,
     comparison,
+    water_balance: waterBalance,
     sources: {
       assets,
       weather_providers: [...new Set(src.weather.map((w) => w.provider_id))].sort(),

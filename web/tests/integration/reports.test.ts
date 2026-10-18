@@ -76,6 +76,12 @@ describe("reports", () => {
     expect(c.limitations.models.map((m) => m.model_id)).toEqual(expect.arrayContaining(["ndvi", "ndvi-change"]));
     for (const o of c.observations!.series) expect(c.evidence[o.evidence_id]!.row_ids).toEqual([o.observation_id]);
     expect(c.summary!.text).toContain("Latest usable imagery");
+    // The field has no agronomy inputs: the water balance section says which, and estimates nothing.
+    expect(c.sections).toContain("water_balance");
+    expect(c.water_balance!.statement.status).toBe("missing");
+    expect(c.water_balance!.result.status).toBe("insufficient_inputs");
+    expect(c.water_balance!.result.current).toBeNull();
+    expect(c.findings.some((f) => f.section === "water_balance" && /No estimate/.test(f.text))).toBe(true);
 
     const fetched = await getReport(analyst.access, id);
     expect(fetched.status).toBe("ready");

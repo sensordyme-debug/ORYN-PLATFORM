@@ -85,7 +85,22 @@ export async function enqueueContextSync(
   return created;
 }
 
-type AoiCtx = { status: string; name: string; data_sources: string[]; news_terms: string[]; lon: number; lat: number };
+/** planting_date: the field's agronomy input (field_agronomy), when set. */
+type AoiCtx = { status: string; name: string; data_sources: string[]; news_terms: string[]; lon: number; lat: number; planting_date: string | null };
+
+/** Days of reanalysis history refreshed on every Open-Meteo sync. */
+export const WEATHER_HISTORY_DAYS = 45;
+/** Furthest back a sync reaches for a field's season (the crop water balance needs every day since planting). */
+export const WEATHER_SEASON_MAX_DAYS = 400;
+
+/** Start of the reanalysis window: the last WEATHER_HISTORY_DAYS, or the field's planting date when earlier (at most WEATHER_SEASON_MAX_DAYS back). */
+export function weatherHistoryStart(now: Date, plantingDate: string | null): Date {
+  const recent = new Date(now.getTime() - WEATHER_HISTORY_DAYS * 86_400_000);
+  if (!plantingDate) return recent;
+  const planted = new Date(`${plantingDate}T00:00:00Z`);
+  const earliest = new Date(now.getTime() - WEATHER_SEASON_MAX_DAYS * 86_400_000);
+  return planted < recent ? (planted > earliest ? planted : earliest) : recent;
+}
 
 async function upsertWeather(tx: Tx, orgId: string, aoiId: string, records: WeatherRecord[]): Promise<number> {
   let inserted = 0;
@@ -185,7 +200,7 @@ async function fetchAndStore(provider: ContextProvider, ctx: JobContext, orgId: 
   if (provider === "open-meteo") {
     const opts = { apiKey: env.openMeteoApiKey(), allowNonCommercial: env.openMeteoAllowNonCommercial(), signal: ctx.signal };
     const end = new Date(Date.now() - 86_400_000);
-    const start = new Date(Date.now() - 45 * 86_400_000);
+    const start = weatherHistoryStart(new Date(), aoi.planting_date);
     const history = await fetchDailyHistory(aoi.lat, aoi.lon, start, end, opts);
     const forecast = await omForecast(aoi.lat, aoi.lon, 7, opts);
     ctx.checkpoint();
@@ -226,7 +241,8 @@ export async function contextSyncHandler(ctx: JobContext): Promise<unknown> {
   const loadAoi = () =>
     withTenant({ orgId }, async (tx) => {
       const [a] = await tx<AoiCtx[]>`
-        select status, name, data_sources, news_terms, ST_X(label_point) as lon, ST_Y(label_point) as lat from aois where id = ${p.aoiId} and org_id = ${orgId}`;
+        select a.status, a.name, a.data_sources, a.news_terms, ST_X(a.label_point) as lon, ST_Y(a.label_point) as lat, f.planting_date::text as planting_date
+          from aois a left join field_agronomy f on f.aoi_id = a.id where a.id = ${p.aoiId} and a.org_id = ${orgId}`;
       return a;
     });
   const aoi = await loadAoi();

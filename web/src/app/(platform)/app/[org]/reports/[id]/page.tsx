@@ -65,6 +65,28 @@ export default async function ReportPage(props: PageProps<"/app/[org]/reports/[i
               </div>
             </Panel>
           ) : null}
+          {c.water_balance ? (
+            <Panel title="Crop water balance" description={`Planning estimate · ${c.water_balance.result.method.id}@${c.water_balance.result.method.version}`}>
+              <div className="flex flex-col gap-3 text-[0.875rem]">
+                <div className="flex items-start gap-3">
+                  <Badge tone={c.water_balance.statement.status === "ok" ? (c.water_balance.result.current?.condition === "stress_likely" ? "alert" : c.water_balance.result.current?.condition === "approaching_stress" ? "watch" : "good") : "muted"}>
+                    {c.water_balance.result.status.replace(/_/g, " ")}
+                  </Badge>
+                  <p>{c.water_balance.statement.text}</p>
+                </div>
+                <KeyValues
+                  items={[
+                    ...(c.water_balance.result.inputs.crop ? [["Crop", `${c.water_balance.result.inputs.crop.label} (${c.water_balance.result.inputs.crop.source})`] as [string, string]] : []),
+                    ...(c.water_balance.result.inputs.plantingDate ? [["Planting date", c.water_balance.result.inputs.plantingDate.value] as [string, string]] : []),
+                    ...(c.water_balance.result.weather?.et0 ? [["Weather", `${c.water_balance.result.weather.et0.provider}, ${c.water_balance.result.weather.et0.recordKind} · ${c.water_balance.result.weather.et0.licence}`] as [string, string]] : []),
+                    ...(c.water_balance.result.totals ? [["Season totals", `ETo ${c.water_balance.result.totals.et0Mm} mm · crop use ${c.water_balance.result.totals.etcAdjMm} mm · rain ${c.water_balance.result.totals.precipMm} mm · irrigation ${c.water_balance.result.totals.irrigationMm} mm`] as [string, string]] : []),
+                    ...c.water_balance.result.missingInputs.map((m) => [`Missing: ${m.input}`, m.why] as [string, string]),
+                  ]}
+                />
+                <p className="text-[0.8125rem] text-bone-50/75">{c.water_balance.result.recommendation}</p>
+              </div>
+            </Panel>
+          ) : null}
           <Panel title="Findings" description="Every finding cites the stored records it comes from.">
             <ul className="flex flex-col gap-2 text-[0.8125rem]">
               {c.findings.map((f) => (

@@ -683,6 +683,37 @@ function renderBody(doc: Doc, c: ReportContent, png: Buffer | null, comparisonIm
     }
   }
 
+  if (c.water_balance) {
+    const wb = c.water_balance.result;
+    h2(doc, "Crop water balance (planning estimate)");
+    statement(doc, c.water_balance.statement);
+    for (const m of wb.missingInputs) para(doc, `Missing input — ${m.input}: ${m.why}`, { size: 7.5 });
+    const rows: [string, string][] = [];
+    const i = wb.inputs;
+    if (i.crop) rows.push(["Crop", `${i.crop.label} (${i.crop.source})`]);
+    if (i.plantingDate) rows.push(["Planting date", `${i.plantingDate.value} (${i.plantingDate.source})`]);
+    if (i.stages) rows.push(["Stage lengths", `${i.stages.days.init} / ${i.stages.days.dev} / ${i.stages.days.mid} / ${i.stages.days.late} days (${i.stages.source})`]);
+    if (i.availableWater) rows.push(["Soil available water", `${i.availableWater.mmPerM} mm per m (${i.availableWater.source})`]);
+    if (i.rootDepth) rows.push(["Rooting depth", `${i.rootDepth.central.toFixed(2)} m${i.rootDepth.range ? ` (range ${i.rootDepth.range[0]}–${i.rootDepth.range[1]} m)` : ""} (${i.rootDepth.source})`]);
+    rows.push(["Irrigation logged", `${i.irrigation.events} event(s), ${i.irrigation.totalMm} mm`]);
+    if (wb.weather?.et0) rows.push(["ETo", `${wb.weather.et0.method}; ${wb.weather.et0.provider}, ${wb.weather.et0.recordKind}; ${wb.weather.et0.licence}`]);
+    if (wb.weather?.precipitation) rows.push(["Rainfall", `${wb.weather.precipitation.method}; ${wb.weather.precipitation.provider}; ${wb.weather.presentDays} of ${wb.weather.expectedDays} days present`]);
+    if (wb.current) {
+      const cur = wb.current;
+      rows.push(["Through", `${cur.date} (${cur.stage} stage)${cur.seasonEnded ? "; the season has ended" : ""}`]);
+      rows.push(["Root-zone depletion", `${cur.depletionMm} mm${cur.depletionRangeMm ? ` (${cur.depletionRangeMm[0]}–${cur.depletionRangeMm[1]} mm across the rooting-depth range)` : ""}`]);
+      rows.push(["Readily / total available water", `${cur.rawMm} / ${cur.tawMm} mm; water stress coefficient Ks ${cur.ks}`]);
+    }
+    if (wb.totals) {
+      const t = wb.totals;
+      rows.push(["Season totals", `ETo ${t.et0Mm} mm; crop use ${t.etcAdjMm} mm; rain ${t.precipMm} mm (${t.effectivePrecipMm} mm effective); irrigation ${t.irrigationMm} mm; deep percolation ${t.deepPercolationMm} mm`]);
+    }
+    rows.push(["Method", `${wb.method.id}@${wb.method.version} — ${wb.method.reference}`]);
+    kv(doc, rows);
+    para(doc, wb.recommendation, { size: 8 });
+    para(doc, `Assumptions: ${wb.assumptions.join(" ")} Limitations are listed under Limitations.`, { size: 7.5, color: COLORS.muted });
+  }
+
   if (c.weather) {
     h2(doc, "Weather");
     statement(doc, c.weather.statement);
