@@ -24,10 +24,10 @@ import { enqueueTx } from "@/server/jobs/queue";
 import { JOB } from "@/server/jobs/types";
 import { contextProvidersFor, enqueueContextSync } from "@/server/pipeline/context";
 
-const metadataSchema = z
+const metadataFields = z
   .record(z.string().max(60), z.union([z.string().max(500), z.number().finite(), z.boolean(), z.null()]))
-  .refine((m) => Object.keys(m).length <= 40, { message: "Too many metadata fields (max 40)." })
-  .default({});
+  .refine((m) => Object.keys(m).length <= 40, { message: "Too many metadata fields (max 40)." });
+const metadataSchema = metadataFields.default({});
 
 const termsSchema = z.array(z.string().trim().min(2).max(80)).max(20);
 
@@ -62,7 +62,9 @@ export const aoiUpdateSchema = z
     parentId: z.uuid().nullable(),
     geometry: aoiInputGeometrySchema,
     bufferM: z.number().positive().max(50_000),
-    metadata: metadataSchema,
+    // No default here: Zod keeps defaults under .partial(), and an update that
+    // omits metadata must leave it unchanged (it used to be replaced with {}).
+    metadata: metadataFields,
     tags: z.array(z.string().trim().min(1).max(40)).max(20),
     monitoringEnabled: z.boolean(),
     monitoringIntervalHours: z.number().int().min(1).max(8760),
