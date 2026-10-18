@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
     : {}),
   poweredByHeader: false,
   reactStrictMode: true,
+  // Extra hostnames allowed to load the development server (e.g. a tunnel
+  // address), comma-separated in ORYN_DEV_ORIGINS. Unset: localhost only.
+  ...(process.env.ORYN_DEV_ORIGINS
+    ? { allowedDevOrigins: process.env.ORYN_DEV_ORIGINS.split(",").map((h) => h.trim()).filter(Boolean) }
+    : {}),
   // pdfkit reads its font metrics from disk; keep it (and the Postgres
   // drivers) out of the server bundle.
   serverExternalPackages: ["pdfkit", "postgres", "pg"],
