@@ -117,15 +117,19 @@ function put(rgba: Uint8Array, i: number, c: Rgba): void {
   rgba[o + 3] = c[3];
 }
 
-/** Continuous product (NDVI, NDWI, NDMI, ΔNDVI): NaN inside the AOI renders as masked grey. */
+/**
+ * Continuous product (NDVI, EVI, SAVI, NDWI, NDMI, ΔNDVI): NaN inside the AOI
+ * renders as masked grey. EVI and SAVI use the NDVI ramp: all three are
+ * vegetation greenness on the same −1 to 1 scale.
+ */
 export function renderContinuous(
   values: Float32Array,
   width: number,
   height: number,
   inside: Uint8Array,
-  kind: "ndvi" | "ndwi" | "ndmi" | "delta_ndvi",
+  kind: "ndvi" | "evi" | "savi" | "ndwi" | "ndmi" | "delta_ndvi",
 ): RenderResult {
-  const stops = kind === "ndvi" ? NDVI_STOPS : kind === "ndwi" ? NDWI_STOPS : kind === "ndmi" ? NDMI_STOPS : DELTA_NDVI_STOPS;
+  const stops = kind === "ndvi" || kind === "evi" || kind === "savi" ? NDVI_STOPS : kind === "ndwi" ? NDWI_STOPS : kind === "ndmi" ? NDMI_STOPS : DELTA_NDVI_STOPS;
   const ramp = colorRamp(stops);
   const rgba = new Uint8Array(width * height * 4);
   for (let i = 0; i < width * height; i++) {

@@ -57,12 +57,16 @@ export function tasksFor(collection: string, enabled: string[]): Task[] {
     case "sentinel-2-l2a":
       return [
         ...(on("ndvi", "ndvi-change", "ndvi-anomaly", "ndvi-zones") ? [{ model: "ndvi" as const, kind: "ndvi" }] : []),
+        ...(on("evi") ? [{ model: "evi" as const, kind: "evi" }] : []),
+        ...(on("savi") ? [{ model: "savi" as const, kind: "savi" }] : []),
         ...(on("ndmi") ? [{ model: "ndmi" as const, kind: "ndmi" }] : []),
         ...(on("ndwi", "water-change") ? [{ model: "ndwi" as const, kind: "ndwi" }] : []),
       ];
     case "landsat-c2-l2":
       return [
         ...(on("ndvi", "ndvi-change", "ndvi-anomaly", "ndvi-zones") ? [{ model: "ndvi" as const, kind: "ndvi" }] : []),
+        ...(on("evi") ? [{ model: "evi" as const, kind: "evi" }] : []),
+        ...(on("savi") ? [{ model: "savi" as const, kind: "savi" }] : []),
         ...(on("ndmi") ? [{ model: "ndmi" as const, kind: "ndmi" }] : []),
       ];
     case "sentinel-1-rtc":
@@ -185,14 +189,17 @@ export async function processAssetHandler(ctx: JobContext): Promise<unknown> {
         sceneCloudCover: asset.cloud_cover === null ? null : Number(asset.cloud_cover),
         boaOffsetApplied: asset.properties["earthsearch:boa_offset_applied"] === true,
       };
-      const wantNdvi = tasks.some((t) => t.model === "ndvi");
-      const wantNdwi = tasks.some((t) => t.model === "ndwi");
-      if (wantNdvi || wantNdwi) {
-        const r = await analyzeOptical({ ...optical, want: { ndvi: wantNdvi, ndwi: wantNdwi, trueColor: true } });
+      const want = (m: AnalyticId) => tasks.some((t) => t.model === m);
+      // NDVI, EVI, SAVI and NDWI share the finest (10 m / 30 m) grid: one read of each band.
+      if (want("ndvi") || want("evi") || want("savi") || want("ndwi")) {
+        const r = await analyzeOptical({ ...optical, want: { ndvi: want("ndvi"), evi: want("evi"), savi: want("savi"), ndwi: want("ndwi"), trueColor: true } });
         const grid: GridContext = { grid: r.grid, corners: r.corners, inside: r.inside, insideCount: r.insideCount };
         const extraQuality = { mask_reasons: r.maskReasons };
-        if (r.ndvi) outputs.push({ task: { model: "ndvi", kind: "ndvi" }, out: r.ndvi, grid, trueColor: r.trueColor?.png ?? null, extraQuality });
-        if (r.ndwi) outputs.push({ task: { model: "ndwi", kind: "ndwi" }, out: r.ndwi, grid, trueColor: r.trueColor?.png ?? null, extraQuality });
+        const trueColor = r.trueColor?.png ?? null;
+        if (r.ndvi) outputs.push({ task: { model: "ndvi", kind: "ndvi" }, out: r.ndvi, grid, trueColor, extraQuality });
+        if (r.evi) outputs.push({ task: { model: "evi", kind: "evi" }, out: r.evi, grid, trueColor, extraQuality });
+        if (r.savi) outputs.push({ task: { model: "savi", kind: "savi" }, out: r.savi, grid, trueColor, extraQuality });
+        if (r.ndwi) outputs.push({ task: { model: "ndwi", kind: "ndwi" }, out: r.ndwi, grid, trueColor, extraQuality });
       }
       // NDMI on the native grid of its own bands (Sentinel-2 20 m, Landsat 30 m), so a separate read.
       if (tasks.some((t) => t.model === "ndmi")) {

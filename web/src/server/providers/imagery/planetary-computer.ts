@@ -108,7 +108,7 @@ export const PLANETARY_COMPUTER_PRODUCTS: ProductDescriptor[] = [
     kind: "optical",
     gsdM: 30,
     revisitDays: 8,
-    analytics: ["ndvi", "ndmi"],
+    analytics: ["ndvi", "evi", "savi", "ndmi"],
     capabilities: { search: true, assetAccess: true },
     notes: "Landsat 8/9 (and earlier missions in the archive). SR scale 2.75e-05, offset −0.2 per raster:bands; QA_PIXEL bit mask.",
   },

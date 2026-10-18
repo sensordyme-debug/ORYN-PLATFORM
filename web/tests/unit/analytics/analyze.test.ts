@@ -127,6 +127,36 @@ describe("analyzeOptical (Sentinel-2)", () => {
     expect(m.mean).toBeCloseTo((NDVI_VEG + -0.04 / 0.06) / 2, 5);
   });
 
+  it("computes EVI and SAVI on the NDVI grid in one read, masking cloud and rejecting bright-blue pixels", async () => {
+    // NIR 0.30, Red 0.05, Blue 0.03 → EVI 2.5 × 0.25 / (0.30 + 0.30 − 0.225 + 1) = 0.625 / 1.375; SAVI 1.5 × 0.25 / 0.85.
+    // East of x = 200 750 the blue band is bright (0.30): EVI's denominator turns negative there; SAVI does not use blue.
+    // SCL marks cloud (9) south of y = 3 999 100.
+    const bright = (x: number) => x >= 200_750;
+    const { rasters } = s2Scene({ scl: (_x, y) => (y < 3_999_100 ? 9 : 4) });
+    rasters.blue = band(10, 150, 150, (x) => (bright(x) ? 4000 : 1300));
+    const res = await analyzeOptical({
+      collection: "sentinel-2-l2a",
+      assets: s2Assets(["red", "nir", "blue", "scl"]),
+      aoi: aoiFromUtm(AOI_BOX),
+      resolve: memResolve,
+      sceneCloudCover: 5,
+      want: { ndvi: true, evi: true, savi: true, ndwi: false, trueColor: false },
+      deps: { open: memoryOpener(rasters) },
+    });
+    expect(res.grid.transform[1]).toBe(10);
+    const evi = res.evi!;
+    const savi = res.savi!;
+    expect(evi.legend.kind).toBe("evi");
+    expect(savi.legend.kind).toBe("savi");
+    expect(evi.metrics!.mean).toBeCloseTo(0.625 / 1.375, 5);
+    expect(savi.metrics!.mean).toBeCloseTo(0.375 / 0.85, 5);
+    // Cloud removes the same pixels from all three; EVI also loses the bright-blue strip, and says so.
+    expect(savi.metrics!.valid_pixels).toBe(res.ndvi!.metrics!.valid_pixels);
+    expect(evi.metrics!.valid_pixels).toBeLessThan(savi.metrics!.valid_pixels);
+    expect(evi.quality.rejected_pixels!.invalid_denominator).toBe(savi.metrics!.valid_pixels - evi.metrics!.valid_pixels);
+    expect(savi.quality.rejected_pixels).toBeUndefined();
+  });
+
   it("marks a mostly cloudy scene unusable without fabricating metrics", async () => {
     // SCL 9 (high-probability cloud) everywhere west of x = 200 760 → ~13 % clear.
     const { open } = s2Scene({ scl: (x) => (x < 200_760 ? 9 : 4) });

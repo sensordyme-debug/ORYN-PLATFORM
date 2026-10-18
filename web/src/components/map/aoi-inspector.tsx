@@ -12,6 +12,7 @@ import { Badge, Button, KeyValues, Notice, ResultClassBadge } from "@/components
 import { AOI_KIND_LABEL, DATA_SOURCES, type AoiKind } from "@/lib/aoi-config";
 import { ageInDays, dataCurrency, formatDate, formatDateTime, formatNumber, formatPercent, relativeTime } from "@/lib/format";
 import { formatArea, formatLatLon } from "@/lib/geo";
+import { CHART_INDICES, INDEX_INFO, type ChartIndex } from "@/lib/indices";
 import { sensorLabel, sensorSeries, sensorsIn } from "@/lib/sensors";
 
 export type InspectorPerms = { write: boolean; run: boolean; review: boolean; notes: boolean; reports: boolean };
@@ -47,8 +48,8 @@ export function AoiInspector({
   onClose: () => void;
   onLoaded?: (aoi: Aoi, observations: Observation[]) => void;
   /** Index shown in the trend chart; controlled by the workspace when given (saved scenes restore it). */
-  chartKind?: "ndvi" | "ndmi";
-  onChartKindChange?: (k: "ndvi" | "ndmi") => void;
+  chartKind?: ChartIndex;
+  onChartKindChange?: (k: ChartIndex) => void;
 }) {
   const [aoi, setAoi] = useState<Aoi | null>(null);
   const [obs, setObs] = useState<Observation[] | null>(null);
@@ -83,11 +84,15 @@ export function AoiInspector({
   }, [slug, aoiId, reload]);
 
   const ndvi = useMemo(() => (obs ?? []).filter((o) => o.kind === "ndvi"), [obs]);
-  const ndmi = useMemo(() => (obs ?? []).filter((o) => o.kind === "ndmi"), [obs]);
-  const [chartKindState, setChartKindState] = useState<"ndvi" | "ndmi">("ndvi");
-  const chartKind = chartKindProp ?? chartKindState;
+  // Indices this area has observations for, in display order (NDVI always first when present).
+  const indexObs = useMemo(() => new Map(CHART_INDICES.map((k) => [k, (obs ?? []).filter((o) => o.kind === k)] as const)), [obs]);
+  const availableIndices = CHART_INDICES.filter((k) => (indexObs.get(k)?.length ?? 0) > 0);
+  const [chartKindState, setChartKindState] = useState<ChartIndex>("ndvi");
+  const requestedKind = chartKindProp ?? chartKindState;
   const setChartKind = onChartKindChange ?? setChartKindState;
-  const kindObs = chartKind === "ndmi" && ndmi.length ? ndmi : ndvi;
+  // An index with no observations for this area falls back to NDVI.
+  const chartKind: ChartIndex = availableIndices.includes(requestedKind) ? requestedKind : "ndvi";
+  const kindObs = indexObs.get(chartKind) ?? ndvi;
   // One sensor per chart: Sentinel-2 and Landsat index values are not
   // comparable, and several tiles of one pass are a single acquisition.
   const sensors = useMemo(() => sensorsIn(kindObs), [kindObs]);
@@ -209,11 +214,11 @@ export function AoiInspector({
       {ndvi.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap gap-1.5">
-          {ndmi.length > 0 ? (
+          {availableIndices.length > 1 ? (
             <div className="flex overflow-hidden self-start rounded-[3px] border border-bone-50/15 text-[0.6875rem]" role="group" aria-label="Index shown in the chart">
-              {(["ndvi", "ndmi"] as const).map((k) => (
-                <button key={k} onClick={() => setChartKind(k)} aria-pressed={chartKind === k} className={chartKind === k ? "bg-bone-50 px-2 py-0.5 text-ink-900" : "px-2 py-0.5 text-bone-50/70"}>
-                  {k === "ndvi" ? "NDVI (vigour)" : "NDMI (canopy moisture)"}
+              {availableIndices.map((k) => (
+                <button key={k} onClick={() => setChartKind(k)} aria-pressed={chartKind === k} title={INDEX_INFO[k].caveat} className={chartKind === k ? "bg-bone-50 px-2 py-0.5 text-ink-900" : "px-2 py-0.5 text-bone-50/70"}>
+                  {INDEX_INFO[k].button}
                 </button>
               ))}
             </div>
@@ -229,15 +234,11 @@ export function AoiInspector({
           ) : null}
           </div>
           <SeriesChart
-            title={
-              chartKind === "ndmi" && ndmi.length
-                ? `NDMI mean over time, ${sensorLabel(sensor)} only, one point per pass (band: p10–p90) · daily precipitation — canopy water content, not soil moisture`
-                : `NDVI mean over time, ${sensorLabel(sensor)} only, one point per pass (band: p10–p90) · daily precipitation`
-            }
+            title={`${INDEX_INFO[chartKind].button} mean over time, ${sensorLabel(sensor)} only, one point per pass (band: p10–p90) · daily precipitation — ${INDEX_INFO[chartKind].caveat}`}
             points={series}
             precip={precip}
-            yDomain={chartKind === "ndmi" && ndmi.length ? [-0.5, 0.7] : undefined}
-            color={chartKind === "ndmi" && ndmi.length ? "#c98500" : undefined}
+            yDomain={INDEX_INFO[chartKind].yDomain}
+            color={INDEX_INFO[chartKind].color}
             activeId={activeObservationId}
             timeZone={timeZone}
             onSelect={(id) => {
@@ -262,7 +263,7 @@ export function AoiInspector({
         ) : null}
         <ul className="flex max-h-72 flex-col overflow-y-auto">
           {(assets ?? []).map((a) => {
-            const KIND_PREF = ["ndvi", "ndmi", "s1_water", "ndwi", "landcover"];
+            const KIND_PREF = ["ndvi", "evi", "savi", "ndmi", "s1_water", "ndwi", "landcover"];
             const o = (obs ?? [])
               .filter((x) => x.asset.id === a.asset.id && x.hasRaster && x.status === "valid")
               .sort((p, q) => KIND_PREF.indexOf(p.kind) - KIND_PREF.indexOf(q.kind))[0];

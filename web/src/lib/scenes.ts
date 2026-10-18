@@ -7,11 +7,12 @@
  * the normal permission-checked APIs; it never carries data or grants access.
  */
 import { z } from "zod";
+import { CHART_INDICES } from "@/lib/indices";
 import { PUBLIC_EVENT_LAYER_IDS } from "@/lib/public-events";
 
 const layerId = z.string().regex(/^[a-z0-9-]{1,64}$/);
 
-export const SCENE_IMAGERY_KINDS = ["ndvi", "ndmi", "ndwi", "s1_water", "landcover"] as const;
+export const SCENE_IMAGERY_KINDS = ["ndvi", "evi", "savi", "ndmi", "ndwi", "s1_water", "landcover"] as const;
 export const SCENE_DETECTION_GRADES = ["", "weak", "moderate", "strong"] as const;
 export const SCENE_VERIFICATION = ["unverified", "needs_field_check", "confirmed", "dismissed"] as const;
 
@@ -41,7 +42,7 @@ export const sceneStateSchema = z.strictObject({
     .strictObject({ kind: z.enum(SCENE_IMAGERY_KINDS), observedAt: z.iso.datetime({ offset: true }), layer: z.enum(["index", "true_color"]).default("index") })
     .nullable()
     .default(null),
-  chartIndex: z.enum(["ndvi", "ndmi"]).default("ndvi"),
+  chartIndex: z.enum(CHART_INDICES).default("ndvi"),
   changes: z
     .strictObject({
       verification: z.array(z.enum(SCENE_VERIFICATION)).max(4),

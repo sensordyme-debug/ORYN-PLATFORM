@@ -67,6 +67,57 @@ export const ANALYTICS = {
       "Values are not comparable across sensors without cross-calibration; series are compared within one sensor family.",
     ],
   },
+  evi: {
+    id: "evi",
+    version: "1.0.0",
+    name: "Enhanced Vegetation Index",
+    resultClass: "deterministic_calculation",
+    description:
+      "EVI = 2.5 · (NIR − Red) / (NIR + 6 · Red − 7.5 · Blue + 1) (Huete et al. 2002; the coefficients USGS uses for its Landsat Level-2 EVI product), computed per pixel from surface reflectance after each band's published scale and offset: Sentinel-2 L2A B08/B04/B02 at 10 m, or Landsat Collection 2 Level-2 SR_B5/SR_B4/SR_B2 at 30 m. Pixels whose denominator is ≤ 0 or whose value falls outside −1 to 1 (the USGS product's valid range) are rejected and counted. Summarized over the AOI's valid pixels.",
+    inputContract: {
+      products: ["earth-search:sentinel-2-l2a", "planetary-computer:landsat-c2-l2"],
+      bands: { sentinel2: ["nir", "red", "blue", "scl"], landsat: ["nir08", "red", "blue", "qa_pixel"] },
+      reflectance: "surface reflectance (Level-2A / Level-2); the coefficients are not valid for digital numbers",
+      parameters: { G: 2.5, C1: 6, C2: 7.5, L: 1 },
+    },
+    outputSchema: {
+      metrics: ["mean", "median", "p10", "p90", "std", "min", "max", "valid_pixels", "total_pixels", "valid_fraction", "masked_fraction", "histogram"],
+      quality: ["rejected_pixels.invalid_denominator", "rejected_pixels.out_of_range"],
+      raster: "PNG visualization + Float32 grid in the source CRS",
+    },
+    limitations: [
+      "EVI saturates less than NDVI over dense canopy, but it depends on the blue band, which is the most sensitive to haze, thin cloud, and residual aerosol: an unflagged thin cloud raises blue reflectance and lowers EVI.",
+      "The coefficients were derived for MODIS; USGS applies the same ones to Landsat surface reflectance, and ORYN applies them to Sentinel-2. Sentinel-2 and Landsat band responses differ, so EVI is compared within one sensor family only.",
+      S2_MASK_NOTE,
+      LANDSAT_MASK_NOTE,
+      "A low or falling EVI marks where to look; it does not identify a cause such as drought, disease, nutrient deficiency, harvest, or tillage.",
+    ],
+  },
+  savi: {
+    id: "savi",
+    version: "1.0.0",
+    name: "Soil-Adjusted Vegetation Index",
+    resultClass: "deterministic_calculation",
+    description:
+      "SAVI = 1.5 · (NIR − Red) / (NIR + Red + 0.5) (Huete 1988, with the soil-brightness factor L = 0.5 that USGS uses for its Landsat Level-2 SAVI product to accommodate most land cover types), computed per pixel from surface reflectance after each band's published scale and offset: Sentinel-2 L2A B08/B04 at 10 m, or Landsat Collection 2 Level-2 SR_B5/SR_B4 at 30 m. Summarized over the AOI's valid pixels.",
+    inputContract: {
+      products: ["earth-search:sentinel-2-l2a", "planetary-computer:landsat-c2-l2"],
+      bands: { sentinel2: ["nir", "red", "scl"], landsat: ["nir08", "red", "qa_pixel"] },
+      reflectance: "surface reflectance (Level-2A / Level-2)",
+      parameters: { L: 0.5 },
+    },
+    outputSchema: {
+      metrics: ["mean", "median", "p10", "p90", "std", "min", "max", "valid_pixels", "total_pixels", "valid_fraction", "masked_fraction", "histogram"],
+      raster: "PNG visualization + Float32 grid in the source CRS",
+    },
+    limitations: [
+      "SAVI reduces, but does not remove, the influence of soil brightness under sparse canopy. L = 0.5 is a compromise for intermediate vegetation density; it is not calibrated for this field's soil or crop.",
+      "Most useful early in the season and on sparse or row crops; over dense canopy it carries little information beyond NDVI.",
+      S2_MASK_NOTE,
+      LANDSAT_MASK_NOTE,
+      "Values are not comparable across sensors without cross-calibration; series are compared within one sensor family.",
+    ],
+  },
   ndmi: {
     id: "ndmi",
     version: "1.0.0",

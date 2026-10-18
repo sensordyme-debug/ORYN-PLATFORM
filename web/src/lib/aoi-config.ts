@@ -46,6 +46,8 @@ export const DATA_SOURCE_IDS = Object.keys(DATA_SOURCES) as DataSourceId[];
 
 export const ANALYTIC_OPTIONS = {
   ndvi: "Vegetation index (NDVI)",
+  evi: "Enhanced vegetation index (EVI)",
+  savi: "Soil-adjusted vegetation index (SAVI)",
   ndmi: "Canopy moisture index (NDMI)",
   "ndvi-zones": "Within-field low-vigour zones",
   ndwi: "Surface water index (NDWI)",
@@ -65,7 +67,7 @@ export function defaultsForOrgKind(kind: string): AoiDefaults {
   if (kind === "agriculture") {
     return {
       dataSources: ["earth-search:sentinel-2-l2a", "planetary-computer:landsat-c2-l2", "nws", "open-meteo"],
-      analytics: ["ndvi", "ndmi", "ndvi-zones", "ndwi", "ndvi-change", "ndvi-anomaly"],
+      analytics: ["ndvi", "evi", "savi", "ndmi", "ndvi-zones", "ndwi", "ndvi-change", "ndvi-anomaly"],
       intervalHours: 12,
       maxCloudCover: 60,
     };

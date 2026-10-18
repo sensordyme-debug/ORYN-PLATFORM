@@ -335,7 +335,8 @@ describe("agriculture: within-field zones, NDMI, and analytics backfill", () => 
     await ingest(org.id, aoiId, asset("S2A_M1", new Date("2026-10-01T16:00:00Z")));
     await runAll();
     expect(wants).toEqual([
-      { ndvi: true, ndwi: false, trueColor: true },
+      // EVI and SAVI share the NDVI read when enabled; this area has neither.
+      { ndvi: true, evi: false, savi: false, ndwi: false, trueColor: true },
       { ndvi: false, ndwi: false, trueColor: false, ndmi: true },
     ]);
     const obs = await ownerSql()<{ kind: string; model_id: string; status: string; raster: Record<string, unknown> }[]>`

@@ -55,7 +55,7 @@ export const EARTH_SEARCH_PRODUCTS: ProductDescriptor[] = [
     kind: "optical",
     gsdM: 10,
     revisitDays: 5,
-    analytics: ["ndvi", "ndmi", "ndwi"],
+    analytics: ["ndvi", "evi", "savi", "ndmi", "ndwi"],
     capabilities: { search: true, assetAccess: true },
     notes:
       "10 m (B02/B03/B04/B08), 20 m (B8A/B11/B12/SCL). Public COGs, no credentials. raster:bands are kept as published; when properties[\"earthsearch:boa_offset_applied\"] is true the published −0.1 offset is already applied to the pixel values and must not be applied again.",

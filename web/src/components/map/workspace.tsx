@@ -20,6 +20,7 @@ import { AOI_KIND_LABEL, type AoiKind } from "@/lib/aoi-config";
 import { cn } from "@/lib/cn";
 import { formatDate, relativeTime } from "@/lib/format";
 import { bboxOf, formatArea, metersPerPixel, parseCoordinates, type Geometry, type PolygonGeometry } from "@/lib/geo";
+import { INDEX_INFO, type ChartIndex } from "@/lib/indices";
 import type { MapBasemap, MapOverlay } from "@/lib/map-layer-types";
 import { orgProfile } from "@/lib/org-profile";
 import { FEED_STATE_LABEL, PUBLIC_EVENT_LAYER_IDS, PUBLIC_EVENT_LAYERS, type FeedState, type PublicEventLayerId, type PublicEventsResponse } from "@/lib/public-events";
@@ -30,7 +31,7 @@ type Filters = { verification: (typeof SCENE_VERIFICATION)[number][]; minGrade: 
 const DEFAULT_FILTERS: Filters = { verification: ["unverified", "needs_field_check", "confirmed"], minGrade: "moderate", types: [], days: 365 };
 type SceneImagery = NonNullable<SceneState["imagery"]>;
 const isSceneImageryKind = (k: string): k is SceneImagery["kind"] => (SCENE_IMAGERY_KINDS as readonly string[]).includes(k);
-const IMAGERY_PREF = ["ndvi", "ndmi", "s1_water", "ndwi", "landcover"];
+const IMAGERY_PREF = ["ndvi", "evi", "savi", "ndmi", "s1_water", "ndwi", "landcover"];
 type EventDays = 1 | 7 | 30;
 const FEED_TONE: Record<FeedState, "good" | "info" | "watch" | "alert" | "muted"> = { nominal: "good", loading: "muted", partial: "info", stale: "watch", unavailable: "alert", disabled: "muted" };
 const wrapLon = (x: number) => ((((x + 180) % 360) + 360) % 360) - 180;
@@ -95,7 +96,7 @@ export function MapWorkspace(props: WorkspaceProps) {
   const [leftOpen, setLeftOpen] = useState(true);
   const [tab, setTab] = useState<"areas" | "layers" | "changes" | "scenes">("areas");
   const [projection, setProjection] = useState<"mercator" | "globe">("mercator");
-  const [chartIndex, setChartIndex] = useState<"ndvi" | "ndmi">("ndvi");
+  const [chartIndex, setChartIndex] = useState<ChartIndex>("ndvi");
   /** Area whose observations are in `timeline` (null while loading). */
   const [timelineAoi, setTimelineAoi] = useState<string | null>(null);
   /** Image a restored scene asked for, resolved once that area's observations load. */
@@ -343,8 +344,9 @@ export function MapWorkspace(props: WorkspaceProps) {
     if (a.changes) setFilters(a.changes);
     if (a.chartIndex) {
       setChartIndex(a.chartIndex);
-      if (a.chartIndex === "ndmi" && timelineAoi && !timeline.some((o) => o.kind === "ndmi" && o.status === "valid")) {
-        setNotice("This area has no usable NDMI image yet, so the chart stays on NDVI. NDMI needs Sentinel-2's 20 m short-wave infrared band.");
+      if (a.chartIndex !== "ndvi" && timelineAoi && !timeline.some((o) => o.kind === a.chartIndex && o.status === "valid")) {
+        const name = INDEX_INFO[a.chartIndex].button;
+        setNotice(`This area has no usable ${name} image yet, so the chart stays on NDVI. Enable ${name} in the area's settings; images it already has are then processed again.`);
       }
     }
     if (a.latestImagery) {

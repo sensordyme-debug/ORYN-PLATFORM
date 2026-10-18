@@ -6,7 +6,7 @@
 
 export type Histogram = { min: number; max: number; counts: number[] };
 
-/** observations.kind = 'ndvi' or 'ndmi' (index statistics over the AOI's valid pixels) */
+/** observations.kind = 'ndvi', 'ndmi', 'evi' or 'savi' (index statistics over the AOI's valid pixels) */
 export type NdviMetrics = {
   mean: number;
   median: number;
@@ -24,6 +24,9 @@ export type NdviMetrics = {
   pixel_area_m2: number;
   histogram: Histogram;
 };
+
+/** Index statistics: the same shape for every spectral index. */
+export type IndexMetrics = NdviMetrics;
 
 /** observations.kind = 'ndwi' (Sentinel-2) or 's1_water' (Sentinel-1) */
 export type WaterMetrics = {
@@ -60,6 +63,11 @@ export type ObservationQuality = {
   gsd_m: number;
   /** Why the observation is unusable, when status = 'unusable'. */
   unusable_reason?: string;
+  /**
+   * Clear pixels with data whose index value was rejected: denominator ≤ 0, or
+   * outside the index's valid range (src/server/analytics/indices.ts).
+   */
+  rejected_pixels?: { invalid_denominator: number; out_of_range: number };
 };
 
 /** observations.raster — a derived grid in the source CRS plus a rendered preview. */
@@ -76,7 +84,7 @@ export type RasterRef = {
   /** Image corners in lon/lat for map display: top-left, top-right, bottom-right, bottom-left. */
   corners: [[number, number], [number, number], [number, number], [number, number]];
   /** Legend for the PNG. */
-  legend: { kind: "ndvi" | "ndwi" | "ndmi" | "water_mask" | "landcover" | "true_color" | "delta_ndvi"; min?: number; max?: number; stops?: { value: number; color: string; label?: string }[] };
+  legend: { kind: "ndvi" | "ndwi" | "ndmi" | "evi" | "savi" | "water_mask" | "landcover" | "true_color" | "delta_ndvi"; min?: number; max?: number; stops?: { value: number; color: string; label?: string }[] };
   /** Optional true-colour preview PNG on the same grid (optical sources only). */
   true_color_key?: string;
   /** Uint8 AOI mask on the same grid (1 = pixel centre inside the AOI at processing time). */

@@ -10,10 +10,22 @@
  *
  *   NDVI = (NIR − Red) / (NIR + Red)
  *   NDWI = (Green − NIR) / (Green + NIR)          (McFeeters 1996)
+ *   NDMI = (NIR − SWIR1) / (NIR + SWIR1)          (Gao 1996)
+ *   EVI  = G·(NIR − Red) / (NIR + C1·Red − C2·Blue + L)
+ *          G = 2.5, C1 = 6, C2 = 7.5, L = 1       (Huete et al. 2002)
+ *   SAVI = (1 + L)·(NIR − Red) / (NIR + Red + L),  L = 0.5   (Huete 1988)
+ * EVI and SAVI coefficients are the ones USGS uses for its Landsat Level-2
+ * surface-reflectance EVI and SAVI products, whose valid output range is
+ * −1 to 1 (−10,000 to 10,000 at scale 0.0001). Both formulas assume
+ * reflectance in [0, 1]; they are wrong on digital numbers, so they run only
+ * after the scale/offset conversion below.
  *
- * A result is NaN when either band is nodata, the pixel is excluded by the
- * validity mask, NIR + Red (resp. Green + NIR) ≤ 0, or the ratio falls outside
- * [−1, 1] (possible only when an offset makes one reflectance negative).
+ * A result is NaN when any band is nodata, the pixel is excluded by the
+ * validity mask, the denominator is ≤ 0, or the value falls outside [−1, 1]
+ * (for the normalized differences, possible only when an offset makes a
+ * reflectance negative; for EVI, when a very bright blue band — residual
+ * cloud, haze, snow — drives the denominator towards zero). Every
+ * computation counts the pixels rejected for each reason.
  * Arithmetic is float64; results are stored as Float32.
  *
  * Sentinel-1: dB = 10 · log10(linear γ⁰); NaN for nodata, non-finite or ≤ 0.
@@ -107,6 +119,139 @@ export function normalizedDifference(a: TypedArray, sa: BandScaling, b: TypedArr
     out[i] = sum > 0 && v >= -1 && v <= 1 ? v : Number.NaN;
   }
   return out;
+}
+
+// ── Shared index engine ───────────────────────────────────────
+
+/** Reflectance bands by role (resolved to asset keys per collection in analyze.ts). */
+export type BandRole = "blue" | "green" | "red" | "nir" | "nir08" | "swir16";
+
+export type SpectralIndexId = "ndvi" | "ndmi" | "ndwi" | "evi" | "savi";
+
+export const EVI_COEFFICIENTS = Object.freeze({ G: 2.5, C1: 6, C2: 7.5, L: 1 });
+export const SAVI_L = 0.5;
+
+export type SpectralIndexDefinition = {
+  id: SpectralIndexId;
+  formula: string;
+  /** Bands in the order `compute` receives their reflectances. */
+  bands: readonly BandRole[];
+  /** Values outside this closed range are rejected as invalid. */
+  validRange: readonly [number, number];
+  /** Coefficients, recorded with every result. */
+  parameters: Readonly<Record<string, number>>;
+  reference: string;
+  /** Value from reflectances; NaN when the denominator is ≤ 0. */
+  compute: (r: readonly number[]) => number;
+};
+
+const nd = (a: number, b: number) => (a + b > 0 ? (a - b) / (a + b) : Number.NaN);
+
+export const SPECTRAL_INDICES: Record<SpectralIndexId, SpectralIndexDefinition> = {
+  ndvi: {
+    id: "ndvi",
+    formula: "(NIR − Red) / (NIR + Red)",
+    bands: ["nir", "red"],
+    validRange: [-1, 1],
+    parameters: {},
+    reference: "Rouse et al. (1974); Tucker (1979)",
+    compute: ([nir, red]) => nd(nir!, red!),
+  },
+  ndmi: {
+    id: "ndmi",
+    formula: "(NIR − SWIR1) / (NIR + SWIR1)",
+    bands: ["nir08", "swir16"],
+    validRange: [-1, 1],
+    parameters: {},
+    reference: "Gao (1996), Remote Sensing of Environment 58:257–266",
+    compute: ([nir, swir]) => nd(nir!, swir!),
+  },
+  ndwi: {
+    id: "ndwi",
+    formula: "(Green − NIR) / (Green + NIR)",
+    bands: ["green", "nir"],
+    validRange: [-1, 1],
+    parameters: {},
+    reference: "McFeeters (1996), International Journal of Remote Sensing 17:1425–1432",
+    compute: ([green, nir]) => nd(green!, nir!),
+  },
+  evi: {
+    id: "evi",
+    formula: "G · (NIR − Red) / (NIR + C1 · Red − C2 · Blue + L)",
+    bands: ["nir", "red", "blue"],
+    validRange: [-1, 1],
+    parameters: EVI_COEFFICIENTS,
+    reference: "Huete et al. (2002), Remote Sensing of Environment 83:195–213; coefficients as in the USGS Landsat Level-2 EVI product",
+    compute: ([nir, red, blue]) => {
+      const { G, C1, C2, L } = EVI_COEFFICIENTS;
+      const den = nir! + C1 * red! - C2 * blue! + L;
+      return den > 0 ? (G * (nir! - red!)) / den : Number.NaN;
+    },
+  },
+  savi: {
+    id: "savi",
+    formula: "(1 + L) · (NIR − Red) / (NIR + Red + L)",
+    bands: ["nir", "red"],
+    validRange: [-1, 1],
+    parameters: { L: SAVI_L },
+    reference: "Huete (1988), Remote Sensing of Environment 25:295–309; L = 0.5 as in the USGS Landsat Level-2 SAVI product",
+    compute: ([nir, red]) => {
+      const den = nir! + red! + SAVI_L;
+      return den > 0 ? ((1 + SAVI_L) * (nir! - red!)) / den : Number.NaN;
+    },
+  },
+};
+
+export type IndexRejections = { invalid_denominator: number; out_of_range: number };
+export type BandInput = { values: TypedArray; scaling: BandScaling };
+
+/**
+ * One spectral index per pixel from reflectance. NaN where `valid` excludes
+ * the pixel, any band is nodata, the denominator is ≤ 0, or the value is
+ * outside the index's valid range; the last two are counted separately (only
+ * for pixels that passed `valid` and have data in every band).
+ */
+export function computeIndex(def: SpectralIndexDefinition, inputs: readonly BandInput[], valid: Uint8Array | null): { values: Float32Array; rejected: IndexRejections } {
+  if (inputs.length !== def.bands.length) {
+    throw new InvalidInputError("band_count_mismatch", `${def.id.toUpperCase()} needs ${def.bands.length} bands (${def.bands.join(", ")}); ${inputs.length} were given.`);
+  }
+  const n = inputs[0]?.values.length ?? 0;
+  if (inputs.some((b) => b.values.length !== n) || (valid && valid.length !== n)) {
+    throw new InvalidInputError("band_shape_mismatch", "Bands passed to an index must have the same length.");
+  }
+  const out = new Float32Array(n);
+  const rejected: IndexRejections = { invalid_denominator: 0, out_of_range: 0 };
+  const r = new Array<number>(inputs.length);
+  const [lo, hi] = def.validRange;
+  for (let i = 0; i < n; i++) {
+    if (valid && !valid[i]) {
+      out[i] = Number.NaN;
+      continue;
+    }
+    let missing = false;
+    for (let k = 0; k < inputs.length; k++) {
+      const b = inputs[k]!;
+      const dn = b.values[i]!;
+      if (dn === b.scaling.nodata || Number.isNaN(dn)) {
+        missing = true;
+        break;
+      }
+      r[k] = dn * b.scaling.scale + b.scaling.offset;
+    }
+    if (missing) {
+      out[i] = Number.NaN;
+      continue;
+    }
+    const v = def.compute(r);
+    if (Number.isNaN(v)) {
+      rejected.invalid_denominator++;
+      out[i] = Number.NaN;
+    } else if (v < lo || v > hi) {
+      rejected.out_of_range++;
+      out[i] = Number.NaN;
+    } else out[i] = v;
+  }
+  return { values: out, rejected };
 }
 
 /** NDVI = (NIR − Red) / (NIR + Red). */

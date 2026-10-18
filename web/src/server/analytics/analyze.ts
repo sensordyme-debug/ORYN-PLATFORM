@@ -1,6 +1,6 @@
 /**
  * Provider-agnostic analyses used by the processing pipeline: optical indices
- * (NDVI, NDWI, NDMI, true colour), Sentinel-1 open-water candidates, and land-cover
+ * (NDVI, EVI, SAVI, NDWI, NDMI, true colour; formulas in indices.ts), Sentinel-1 open-water candidates, and land-cover
  * composition — each for one AOI on one scene/item.
  *
  * Grid: the AOI (lon/lat) is projected into the asset's own CRS and its
@@ -47,10 +47,12 @@ import {
   aboveThreshold,
   bandScaling,
   belowThreshold,
+  computeIndex,
   implausibleReflectanceCount,
   linearToDb,
-  normalizedDifference,
+  SPECTRAL_INDICES,
   type BandScaling,
+  type SpectralIndexDefinition,
 } from "./indices";
 import { LANDCOVER_TABLES, composition, type LandcoverProduct } from "./landcover";
 import { cogOpener, type RasterOpener } from "./raster/cog";
@@ -235,7 +237,7 @@ export type AnalyzeOpticalParams = CommonParams & {
    * bands (Sentinel-2 20 m, Landsat 30 m), never on the 10 m NDVI grid with
    * duplicated pixels.
    */
-  want: { ndvi: boolean; ndwi: boolean; trueColor: boolean; ndmi?: boolean };
+  want: { ndvi: boolean; ndwi: boolean; trueColor: boolean; ndmi?: boolean; evi?: boolean; savi?: boolean };
   /** Sentinel-2 only: also accept SCL class 7 (unclassified). Default false. */
   includeUnclassified?: boolean;
   /**
@@ -260,6 +262,9 @@ export type OpticalResult = GridContext & {
   ndvi?: AnalysisOutput<NdviMetrics>;
   /** Same metric shape as NDVI (index statistics over the AOI's valid pixels). */
   ndmi?: AnalysisOutput<NdviMetrics>;
+  /** EVI and SAVI: same grid and metric shape as NDVI. */
+  evi?: AnalysisOutput<NdviMetrics>;
+  savi?: AnalysisOutput<NdviMetrics>;
   ndwi?: AnalysisOutput<WaterMetrics> & { waterMask: Uint8Array };
   trueColor?: { png: Buffer; legend: Legend };
 };
@@ -292,11 +297,11 @@ export async function analyzeOptical(params: AnalyzeOpticalParams): Promise<Opti
   const { collection, want, assets } = params;
   const keys = OPTICAL_BANDS[collection];
   if (!keys) throw new InvalidInputError("unsupported_collection", `Optical analysis does not support collection "${String(collection)}".`);
-  if (!want.ndvi && !want.ndwi && !want.trueColor && !want.ndmi) throw new InvalidInputError("nothing_requested", "No optical product was requested.");
-  if (want.ndmi && (want.ndvi || want.ndwi || want.trueColor)) {
+  if (!want.ndvi && !want.ndwi && !want.trueColor && !want.ndmi && !want.evi && !want.savi) throw new InvalidInputError("nothing_requested", "No optical product was requested.");
+  if (want.ndmi && (want.ndvi || want.ndwi || want.trueColor || want.evi || want.savi)) {
     throw new InvalidInputError(
       "separate_grid_required",
-      "NDMI is computed on the native grid of its own bands (Sentinel-2 20 m, Landsat 30 m); request it in a separate call from NDVI, NDWI, and true colour.",
+      "NDMI is computed on the native grid of its own bands (Sentinel-2 20 m, Landsat 30 m); request it in a separate call from NDVI, EVI, SAVI, NDWI, and true colour.",
     );
   }
   if (want.ndwi && collection !== "sentinel-2-l2a") {
@@ -310,10 +315,13 @@ export async function analyzeOptical(params: AnalyzeOpticalParams): Promise<Opti
   const needed = new Set<string>();
   const add = (...ks: string[]) => ks.forEach((k) => needed.add(k));
   if (want.ndvi) add(keys.nir, keys.red);
+  if (want.evi) add(keys.nir, keys.red, keys.blue);
+  if (want.savi) add(keys.nir, keys.red);
   if (want.ndwi) add(keys.green, keys.nir);
   if (want.trueColor && !useVisual) add(keys.red, keys.green, keys.blue);
   if (want.ndmi) add(keys.nir08, keys.swir16);
-  const analysing = Boolean(want.ndvi || want.ndwi || want.ndmi);
+  const analysing = Boolean(want.ndvi || want.ndwi || want.ndmi || want.evi || want.savi);
+  const requested: SpectralIndexDefinition[] = (["ndvi", "evi", "savi", "ndwi", "ndmi"] as const).filter((id) => want[id]).map((id) => SPECTRAL_INDICES[id]);
   for (const k of needed) requireAsset(assets, k, "this optical product");
   if (analysing) requireAsset(assets, keys.quality, "cloud masking");
 
@@ -357,30 +365,26 @@ export async function analyzeOptical(params: AnalyzeOpticalParams): Promise<Opti
         ? sclValidMask(q.values, { inside, footprint: q.footprint, includeUnclassified: params.includeUnclassified })
         : landsatQaValidMask(q.values, { inside, footprint: q.footprint });
     result.maskReasons = qualityMask.reasons;
-    const analysed = new Set<string>([
-      ...(want.ndvi ? [keys.nir, keys.red] : []),
-      ...(want.ndwi ? [keys.green, keys.nir] : []),
-      ...(want.ndmi ? [keys.nir08, keys.swir16] : []),
-    ]);
+    const analysed = new Set<string>(requested.flatMap((def) => def.bands.map((role) => keys[role])));
     for (const k of analysed) assertPlausibleReflectance(bands.get(k)!, qualityMask.valid, k);
   }
 
   const gsdM = nominalGsdM(grid);
   const clearWord = "cloud-free";
-  const index = (aKey: string, bKey: string) => {
-    const a = bands.get(aKey)!;
-    const b = bands.get(bKey)!;
-    const covered = andMasks(a.hasData, b.hasData);
+  const index = (def: SpectralIndexDefinition) => {
+    const loaded = def.bands.map((role) => bands.get(keys[role])!);
+    const covered = andMasks(...loaded.map((b) => b.hasData));
     const clear = andMasks(covered, qualityMask!.valid);
-    const values = normalizedDifference(a.read.values, a.scaling, b.read.values, b.scaling, clear);
+    const { values, rejected } = computeIndex(def, loaded.map((b) => ({ values: b.read.values, scaling: b.scaling })), clear);
     const counts: Counts = { total: ctx.insideCount, covered: countOnes(covered), clear: countOnes(clear), valid: countFinite(values) };
     const assessed = assess(counts, { sceneCloudCover: params.sceneCloudCover, gsdM, minValidFraction: minValid, downsampled, clearWord });
     if (offsetOverridden) assessed.quality.flags.push("reflectance_offset_overridden");
+    if (rejected.invalid_denominator || rejected.out_of_range) assessed.quality.rejected_pixels = rejected;
     return { values, counts, ...assessed };
   };
 
-  /** Index statistics over the AOI's valid pixels (NDVI, NDMI); null metrics when unusable. */
-  const indexOutput = (r: ReturnType<typeof index>, kind: "ndvi" | "ndmi"): AnalysisOutput<NdviMetrics> => {
+  /** Index statistics over the AOI's valid pixels (NDVI, EVI, SAVI, NDMI); null metrics when unusable. */
+  const indexOutput = (r: ReturnType<typeof index>, kind: "ndvi" | "evi" | "savi" | "ndmi"): AnalysisOutput<NdviMetrics> => {
     const stats = r.status === "valid" ? summarize(r.values) : null;
     const rendered = renderContinuous(r.values, grid.width, grid.height, inside, kind);
     return {
@@ -408,12 +412,13 @@ export async function analyzeOptical(params: AnalyzeOpticalParams): Promise<Opti
     };
   };
 
-  if (want.ndvi) result.ndvi = indexOutput(index(keys.nir, keys.red), "ndvi");
-  // NDMI (Gao 1996) = (NIR − SWIR1) / (NIR + SWIR1)
-  if (want.ndmi) result.ndmi = indexOutput(index(keys.nir08, keys.swir16), "ndmi");
+  if (want.ndvi) result.ndvi = indexOutput(index(SPECTRAL_INDICES.ndvi), "ndvi");
+  if (want.evi) result.evi = indexOutput(index(SPECTRAL_INDICES.evi), "evi");
+  if (want.savi) result.savi = indexOutput(index(SPECTRAL_INDICES.savi), "savi");
+  if (want.ndmi) result.ndmi = indexOutput(index(SPECTRAL_INDICES.ndmi), "ndmi");
 
   if (want.ndwi) {
-    const r = index(keys.green, keys.nir);
+    const r = index(SPECTRAL_INDICES.ndwi);
     const waterMask = aboveThreshold(r.values, NDWI_WATER_THRESHOLD);
     const water = countOnes(waterMask);
     const meanIndex = meanOf(r.values);
